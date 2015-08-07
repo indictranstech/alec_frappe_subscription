@@ -3,9 +3,9 @@ from frappe import _
 def get_data():
 	return {
 		"Frappe Subscription": {
-			"color": "red",
-			"icon": "icon-shopping-cart ",
+			"color": "grey",
+			"icon": "icon-truck",
 			"type": "module",
-			"label": _("Frappe Subscription")
+			"label": _("Shipping")
 		}
 	}
