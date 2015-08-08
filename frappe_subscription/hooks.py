@@ -93,6 +93,8 @@ app_version = "0.0.1"
 # 	]
 # }
 
+fixtures = ["Custom Field"]
+
 # Testing
 # -------
 
@@ -104,4 +106,3 @@ app_version = "0.0.1"
 # override_whitelisted_methods = {
 # 	"frappe.core.doctype.event.event.get_events": "frappe_subscription.event.get_events"
 # }
-
