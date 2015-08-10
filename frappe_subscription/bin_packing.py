@@ -64,7 +64,37 @@ def get_bin_packing_details(items):
 def get_bin_details():
     # get item with item group boxes
     # exclude the unique packing boxes
-    pass
+    bins = []
+
+    query = """SELECT
+                i.name, i.width, i.height, i.length, i.weight_
+            FROM
+                `tabItem` i,
+                `tabBin` b
+            WHERE
+                i.item_group='Boxes'
+            AND i.name NOT IN (SELECT box FROM `tabItem` WHERE unique_box_for_packing=1)
+            AND b.item_code=i.item_code
+            AND b.actual_qty>0"""
+
+    items = frappe.db.sql(query,as_dict=True)
+
+    for item in items:
+        height = item.get('height')
+        width = item.get("width")
+        depth = item.get("length")
+        weight = item.get("weight_")
+
+        if height and width and depth and weight:
+            bins.append({
+                "id":item.name, "h":height,
+                "w":width, "d":depth,
+                "max_wg":weight
+            })
+        else:
+            frappe.throw("Please set the valid dimension details for {0} item".format(item.name))
+
+    return bins
 
 def get_bin_packing_credentials():
     config = frappe.db.get_values("Shipping Configuration","Shipping Configuration",["binpacking_user_name","binpacking_api_key"],
