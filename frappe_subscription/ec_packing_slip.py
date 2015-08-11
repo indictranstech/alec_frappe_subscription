@@ -18,7 +18,7 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
             ch.packing_slip = create_packing_slip(delivery_note, bin_info)
 
         # freez tht delivery note
-        dn.is_freezed = 1
+        dn.dn_status = "Packing Slips Created"
         dn.save(ignore_permissions=True)
     return dn
 
@@ -95,7 +95,7 @@ def on_packing_slip_cancel(doc, method):
     if dn.docstatus == 1:
         frappe.throw("Packing Slip is Linked with Submitted Delivery Note : %s"%dn.name)
     elif dn.docstatus == 0:
-        if dn.is_freezed:
+        if dn.dn_status not in "Draft":
             frappe.throw("Delivery Note is in Freezed state can not cancel the Packing Slip")
         else:
             to_remove = []
