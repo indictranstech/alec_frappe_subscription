@@ -17,6 +17,8 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
             ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
             ch.packing_slip = create_packing_slip(delivery_note, bin_info)
 
+        # freez tht delivery note
+        dn.is_freezed = 1
         dn.save(ignore_permissions=True)
     return dn
 
@@ -93,12 +95,15 @@ def on_packing_slip_cancel(doc, method):
     if dn.docstatus == 1:
         frappe.throw("Packing Slip is Linked with Submitted Delivery Note : %s"%dn.name)
     elif dn.docstatus == 0:
-        to_remove = []
-        for ps in dn.packing_slip_details:
-            if ps.packing_slip == doc.name:
-                to_remove.append(ps)
-        if to_remove:
-            [dn.remove(ch) for ch in to_remove]
-            dn.save(ignore_permissions = True)
+        if dn.is_freezed:
+            frappe.throw("Delivery Note is in Freezed state can not cancel the Packing Slip")
+        else:
+            to_remove = []
+            for ps in dn.packing_slip_details:
+                if ps.packing_slip == doc.name:
+                    to_remove.append(ps)
+            if to_remove:
+                [dn.remove(ch) for ch in to_remove]
+                dn.save(ignore_permissions = True)
 
-    frappe.delete_doc("Packing Slip",doc.name)
+                frappe.delete_doc("Packing Slip",doc.name)
