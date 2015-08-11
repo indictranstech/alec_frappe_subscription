@@ -1,10 +1,10 @@
 cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
     if(doc.name.indexOf("New Delivery Note") > -1)
-        frappe.throw("Please first save the delivery note");
+        frappe.throw("Please first save the Delivery Note");
     else{
         return frappe.call({
             freeze: true,
-            freeze_message:"Fetching Bin Packing Information",
+            freeze_message:"Fetching Bin Packing Information ...",
             method: "frappe_subscription.bin_packing.get_bin_packing_details",
             args:{
                 delivery_note:doc.name,
