@@ -24,7 +24,7 @@
    "print_hide": 1, 
    "read_only": 1, 
    "report_hide": 0, 
-   "reqd": 1, 
+   "reqd": 0, 
    "search_index": 0, 
    "set_only_once": 0, 
    "unique": 0
@@ -44,7 +44,7 @@
    "print_hide": 1, 
    "read_only": 1, 
    "report_hide": 0, 
-   "reqd": 1, 
+   "reqd": 0, 
    "search_index": 0, 
    "set_only_once": 0, 
    "unique": 0
@@ -83,7 +83,7 @@
    "print_hide": 0, 
    "read_only": 1, 
    "report_hide": 0, 
-   "reqd": 1, 
+   "reqd": 0, 
    "search_index": 0, 
    "set_only_once": 0, 
    "unique": 0
@@ -96,7 +96,7 @@
  "is_submittable": 0, 
  "issingle": 0, 
  "istable": 1, 
- "modified": "2015-08-10 07:26:01.592448", 
+ "modified": "2015-08-10 09:31:11.824430", 
  "modified_by": "Administrator", 
  "module": "Frappe Subscription", 
  "name": "Bin Packing Details", 

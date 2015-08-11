@@ -18,6 +18,7 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
             ch.packing_slip = create_packing_slip(delivery_note, bin_info)
 
         dn.save(ignore_permissions=True)
+    return dn
 
 def create_packing_slip(delivery_note, bin_detail):
     # get items and create the packing slip
@@ -25,7 +26,8 @@ def create_packing_slip(delivery_note, bin_detail):
     ps.delivery_note = delivery_note
     case_no = get_recommended_case_no(delivery_note)
     ps.from_case_no, ps.to_case_no = case_no, case_no
-    total_weight = calculate_total_weight(bin_detail.get("bin_data"))
+    # total_weight = calculate_total_weight(bin_detail.get("bin_data"))
+    total_weight = flt(bin_detail.get("bin_data").get("weight"))
     ps.net_weight_pkg, ps.gross_weight_pkg = total_weight, total_weight
 
     ps.set("items",[])
@@ -67,8 +69,10 @@ def create_packing_slip(delivery_note, bin_detail):
 
     return ps.name
 
-def calculate_total_weight(bin_data):
-    return bin_data.get("weight") * (bin_data.get("used_weight") / 100)
+# def calculate_total_weight(bin_data):
+#     frappe.errprint(bin_data)
+#     frappe.errprint([bin_data.get("weight"), bin_data.get("used_weight"),(bin_data.get("weight") * 0.01) * (bin_data.get("used_weight") / 100)])
+#     return (bin_data.get("weight") * 0.01) * (bin_data.get("used_weight") / 100)
 
 def get_recommended_case_no(delivery_note):
     """
@@ -79,3 +83,22 @@ def get_recommended_case_no(delivery_note):
         WHERE delivery_note = %s AND docstatus=1""", delivery_note)
 
     return cint(recommended_case_no[0][0]) + 1
+
+def on_packing_slip_cancel(doc, method):
+    # delete the packing slip details entry from delivery note
+
+    delivery_note = doc.delivery_note
+    dn = frappe.get_doc("Delivery Note", delivery_note)
+
+    if dn.docstatus == 1:
+        frappe.throw("Packing Slip is Linked with Submitted Delivery Note : %s"%dn.name)
+    elif dn.docstatus == 0:
+        to_remove = []
+        for ps in dn.packing_slip_details:
+            if ps.packing_slip == doc.name:
+                to_remove.append(ps)
+        if to_remove:
+            [dn.remove(ch) for ch in to_remove]
+            dn.save(ignore_permissions = True)
+
+    frappe.delete_doc("Packing Slip",doc.name)

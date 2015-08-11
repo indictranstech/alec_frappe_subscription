@@ -24,10 +24,12 @@ params = {
     "images_separated": "1"
 }
 
-def get_bin_packing_details(delivery_note, items):
+@frappe.whitelist()
+def get_bin_packing_details(delivery_note):
     # check item group of item
+    dn = frappe.get_doc("Delivery Note", delivery_note)
     items_to_pack = []
-    for item in items:
+    for item in dn.items:
         item_details = frappe.db.get_values("Item",item.item_code,
                                             ["item_group", "unique_box_for_packing", "height", "width", "length", "weight_"],
                                             as_dict=True)

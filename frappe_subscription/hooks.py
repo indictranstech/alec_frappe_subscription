@@ -64,13 +64,11 @@ app_version = "0.0.1"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-#	}
-# }
+doc_events = {
+	"Packing Slip": {
+		"on_cancel": "frappe_subscription.ec_packing_slip.on_packing_slip_cancel",
+	}
+}
 
 # Scheduled Tasks
 # ---------------
