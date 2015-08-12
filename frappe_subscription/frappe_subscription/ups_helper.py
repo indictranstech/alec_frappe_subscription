@@ -86,8 +86,9 @@ class UPSHelper(object):
                 AddressLine2= doc.address_line_2,
                 City= doc.city,
                 StateProvinceCode= doc.state,
-                CountryCode= frappe.db.get_value("Country",doc.country,"code"),
+                CountryCode= doc.country,
                 PostalCode= doc.pin_code
+                # PostalCode= '02144',
             )
         else:
             return ShipmentConfirm.address_type(
@@ -96,8 +97,8 @@ class UPSHelper(object):
                 City= doc.city,
                 StateProvinceCode= doc.state,
                 # CountryCode= doc.country,
-                CountryCode= "US",
-                PostalCode=str(doc.pincode)
+                CountryCode= frappe.db.get_value("Country",doc.country,"code"),
+                PostalCode=str(doc.pincode),
             )
 
     @staticmethod
