@@ -19,6 +19,31 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
     }
 }
 
+cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
+    if(doc.dn_status == "Draft"){
+        frappe.throw("Bin Packing Information not found ...\n");
+    }
+    else if(doc.dn_status == "Shipping Labels Created"){
+        frappe.throw("Shipping Labels are already Created ...\n");
+    }
+    else{
+        return frappe.call({
+            freeze: true,
+            freeze_message:"Fetching UPS Shipping Rates ...",
+            method: "frappe_subscription.frappe_subscription.ups_shipping_rates.get_shipping_rates",
+            args:{
+                delivery_note:doc.name,
+            },
+            callback: function(r){
+                if(!r.exc) {
+                    cur_frm.reload_doc();
+                    frappe.msgprint("Fetched UPS Shipping Rates ....");
+                }
+            },
+        });
+    }
+}
+
 frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
     dn_status = cur_frm.doc.dn_status;
     if(dn_status != "Draft"){
