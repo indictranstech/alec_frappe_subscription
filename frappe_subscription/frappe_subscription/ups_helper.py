@@ -47,37 +47,6 @@ class UPSHelper(object):
         else:
             frappe.throw("Shipper Address and Shipper Number fields required")
 
-    # @staticmethod
-    # def get_address(address_name, is_ship_from= False):
-    #     doc = None
-    #     address_type = ""
-    #     if is_ship_from:
-    #         doc = frappe.get_doc("Warehouse",address_name)
-    #         if not doc:
-    #             frappe.throw("Can not fetch Shipper Address")
-    #         else:
-    #             return ShipmentConfirm.address_type(
-    #                 AddressLine1= doc.address_line_1,
-    #                 AddressLine2= doc.address_line_2,
-    #                 City= doc.city,
-    #                 StateProvinceCode= doc.state,
-    #                 CountryCode= doc.country,
-    #                 PostalCode= str(doc.pin)
-    #             )
-    #     else:
-    #         doc = frappe.get_doc("Address", address_name)
-    #         if not doc:
-    #             frappe.throw("Can not fetch Shipper Address")
-    #         else:
-    #             return ShipmentConfirm.address_type(
-    #                 AddressLine1= doc.address_line1,
-    #                 AddressLine2= doc.address_line2,
-    #                 City= doc.city,
-    #                 StateProvinceCode= doc.state,
-    #                 CountryCode= doc.country,
-    #                 PostalCode=str(doc.pincode)
-    #             )
-
     @staticmethod
     def get_address(doc, is_ship_from= False):
         if is_ship_from:
@@ -88,7 +57,6 @@ class UPSHelper(object):
                 StateProvinceCode= doc.state,
                 CountryCode= doc.country,
                 PostalCode= doc.pin_code
-                # PostalCode= '02144',
             )
         else:
             return ShipmentConfirm.address_type(
@@ -96,7 +64,6 @@ class UPSHelper(object):
                 AddressLine2= doc.address_line2,
                 City= doc.city,
                 StateProvinceCode= doc.state,
-                # CountryCode= doc.country,
                 CountryCode= frappe.db.get_value("Country",doc.country,"code"),
                 PostalCode=str(doc.pincode),
             )

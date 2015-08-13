@@ -1,7 +1,9 @@
 import frappe
+import json
 from lxml import etree
 from lxml.builder import E
 
+from frappe.utils import flt
 from ups.rating_package import RatingService
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
 
@@ -16,13 +18,9 @@ def get_shipping_rates(delivery_note):
     rating_api = get_rating_service(params)
     request = get_ups_rating_request(dn, params)
     response = rating_api.request(request)
-
-    frappe.errprint(etree.tostring(response, pretty_print=True))
-    s
-
     shipping_rates = parse_xml_response_to_json(response)
 
-    dn.ups_rates = shipping_rates
+    dn.ups_rates = json.dumps(shipping_rates)
     dn.save(ignore_permissions= True)
 
 def get_rating_service(params):
@@ -35,7 +33,6 @@ def get_rating_service(params):
 
 def get_ups_rating_request(delivery_note, params):
     # prepate the ups rating request
-
     dn = delivery_note
 
     packing_slips = [row.packing_slip for row in dn.packing_slip_details]
@@ -55,9 +52,8 @@ def get_ups_rating_request(delivery_note, params):
                     Helper.get_shipper(params),
                     Helper.get_ship_to_address(ship_to_params, dn.shipping_address_name,),
                     Helper.get_ship_from_address(params, ship_from_address_name),
-                    RatingService.service_type(Code='01'),
+                    RatingService.service_type(Code='03'),
                 )
-    # packages = Helper.get_packages(packing_slips, package_type)
     packages = Helper.get_packages(packing_slips, "02")
     shipment.extend(packages)
 
@@ -66,3 +62,22 @@ def get_ups_rating_request(delivery_note, params):
     )
 
     return rating_request
+
+def parse_xml_response_to_json(response):
+    rates = {}
+
+    for rated_shipment in response.iterchildren(tag='RatedShipment'):
+        service = rated_shipment.find("Service")
+        total_charges = rated_shipment.find("TotalCharges")
+
+        if service and total_charges:
+            service_code = service.find("Code")
+            service_charges = total_charges.find("MonetaryValue")
+
+            rates.update({
+                service_code.text: flt(service_charges.text)
+            })
+        else:
+            frappe.throw("Can Not find the Service and Total Charges Attribute in RatedShipment")
+
+    return rates
