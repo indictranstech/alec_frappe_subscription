@@ -130,3 +130,21 @@ class UPSHelper(object):
             packages.append(package)
 
         return packages
+
+    @staticmethod
+    def get_payment_info(type="prepaid", **kwargs):
+        """Returns the payment info filled
+
+        :param type: The payment type.
+
+        .. note::
+            if payment type is prepaid AccountNumber must be provided.
+        """
+        if type == 'prepaid':
+            assert 'AccountNumber' in kwargs
+            return ShipmentConfirm.payment_information_type(
+                ShipmentConfirm.payment_information_prepaid_type(
+                    AccountNumber=kwargs['AccountNumber'])
+            )
+        else:
+            raise Exception("Type %s is not supported" % type)

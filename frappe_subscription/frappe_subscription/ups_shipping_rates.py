@@ -21,6 +21,7 @@ def get_shipping_rates(delivery_note):
     shipping_rates = parse_xml_response_to_json(response)
 
     dn.ups_rates = json.dumps(shipping_rates)
+    dn.dn_status = "UPS Rates Fetched"
     dn.save(ignore_permissions= True)
 
 def get_rating_service(params):

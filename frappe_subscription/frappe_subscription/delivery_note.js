@@ -19,9 +19,37 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
     }
 }
 
+cur_frm.cscript.create_ups_shipping_labels = function(doc,cdt,cdn){
+    if(doc.dn_status == "Draft"){
+        frappe.throw("Bin Packing Information not found ...\n");
+    }
+    else if(doc.dn_status == "Shipping Labels Created"){
+        frappe.throw("Shipping Labels are already Created ...\n");
+    }
+    else{
+        return frappe.call({
+            freeze: true,
+            freeze_message:"Creating UPS Shipping Labels ...",
+            method: "frappe_subscription.frappe_subscription.ups_shipping_package.get_shipping_labels",
+            args:{
+                delivery_note:doc.name,
+            },
+            callback: function(r){
+                if(!r.exc) {
+                    // cur_frm.reload_doc();
+                    frappe.msgprint("Shipping Labels Created ....");
+                }
+            },
+        });
+    }
+}
+
 cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
     if(doc.dn_status == "Draft"){
         frappe.throw("Bin Packing Information not found ...\n");
+    }
+    else if(doc.dn_status == "UPS Rates Fetched"){
+        frappe.throw("UPS Rates are already Fetched ...\n");
     }
     else if(doc.dn_status == "Shipping Labels Created"){
         frappe.throw("Shipping Labels are already Created ...\n");
@@ -36,7 +64,7 @@ cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
             },
             callback: function(r){
                 if(!r.exc) {
-                    cur_frm.reload_doc();
+                    // cur_frm.reload_doc();
                     frappe.msgprint("Fetched UPS Shipping Rates ....");
                 }
             },
