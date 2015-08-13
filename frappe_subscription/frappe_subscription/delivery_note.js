@@ -36,6 +36,7 @@ cur_frm.cscript.create_ups_shipping_labels = function(doc,cdt,cdn){
             },
             callback: function(r){
                 if(!r.exc) {
+                    cur_frm.refresh_fields();
                     // cur_frm.reload_doc();
                     frappe.msgprint("Shipping Labels Created ....");
                 }

@@ -22,10 +22,10 @@ def get_shipping_labels(delivery_note):
     digest = shipment_confirm_api.extract_digest(response)
     shipment_accept_request = ShipmentAccept.shipment_accept_request_type(digest)
     response = shipment_accept_api.request(shipment_accept_request)
-    frappe.errprint(etree.tostring(response, pretty_print=True))
-    s
-    response = rating_api.request(request)
-    shipping_rates = parse_xml_response_to_json(response)
+    shipping_info = parse_xml_response_to_json(response)
+
+    # save tracking no and labels to delivery note
+    save_tracking_number_and_shipping_labels(dn, shipping_info)
 
 def get_shipment_confirm_service(params):
     return ShipmentConfirm(
@@ -70,3 +70,47 @@ def get_ups_shipment_confirm_request(delivery_note, params):
     )
     request.find("Shipment").extend(packages)
     return request
+
+def parse_xml_response_to_json(response):
+    info = {}
+    if response.find("Response").find("ResponseStatusCode").text == "1":
+        shipment_result = response.find("ShipmentResults")
+        shipment_charges = shipment_result.find("ShipmentCharges")
+        total_charges = shipment_charges.find("TotalCharges")
+
+        if shipment_result and total_charges:
+            service_charges = total_charges.find("MonetaryValue")
+            info.update({
+                "total_charges": service_charges.text
+            })
+
+            c = 1
+            for package in shipment_result.iterchildren(tag='PackageResults'):
+                tracking_id = package.find("TrackingNumber").text
+                label = package.find("LabelImage").find("GraphicImage").text
+                info.update({
+                    c:{
+                        "tracking_id":tracking_id,
+                        "label":label
+                    }
+                })
+                c+=1
+        else:
+            frappe.throw("Can Not find the Service and Total Charges Attribute in RatedShipment")
+
+        return info
+    else:
+        frappe.throw(response.find("Response").find("ResponseStatusDescription").text)
+
+def save_tracking_number_and_shipping_labels(dn, shipment_info):
+    for row in dn.packing_slip_details:
+        info = shipment_info.get(row.idx)
+        if info:
+            row.tracking_id = info.get("tracking_id")
+            row.shipping_label = "<img src='data:image/gif;base64,%s'"%(info.get('label'))
+            row.tracking_status = "Shipment Label(s) Created"
+        else:
+            frappe.throw("Error while parsing xml response")
+
+    dn.dn_status = "Shipping Labels Created"
+    dn.save(ignore_permissions=True)
