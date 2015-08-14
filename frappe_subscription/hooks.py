@@ -70,6 +70,7 @@ doc_events = {
 	},
 	"Delivery Note": {
 		"on_cancel": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_cancel",
+		"on_submit": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_submit",
 	}
 }
 

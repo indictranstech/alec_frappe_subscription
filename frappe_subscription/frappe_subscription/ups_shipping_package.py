@@ -22,6 +22,7 @@ def get_shipping_labels(delivery_note):
     digest = shipment_confirm_api.extract_digest(response)
     shipment_accept_request = ShipmentAccept.shipment_accept_request_type(digest)
     response = shipment_accept_api.request(shipment_accept_request)
+
     shipping_info = parse_xml_response_to_json(response)
 
     # save tracking no and labels to delivery note
@@ -84,17 +85,20 @@ def parse_xml_response_to_json(response):
                 "total_charges": service_charges.text
             })
 
-            c = 1
+            idx = 1
             for package in shipment_result.iterchildren(tag='PackageResults'):
                 tracking_id = package.find("TrackingNumber").text
                 label = package.find("LabelImage").find("GraphicImage").text
+                # packing_slip = package.find("Description").text
+                # packing_slip = packing_slip.split("/")[1]
                 info.update({
-                    c:{
+                    # packing_slip:{
+                    idx:{
                         "tracking_id":tracking_id,
                         "label":label
                     }
                 })
-                c+=1
+                idx += 1
         else:
             frappe.throw("Can Not find the Service and Total Charges Attribute in RatedShipment")
 
@@ -104,11 +108,12 @@ def parse_xml_response_to_json(response):
 
 def save_tracking_number_and_shipping_labels(dn, shipment_info):
     for row in dn.packing_slip_details:
+        # info = shipment_info.get(row.packing_slip)
         info = shipment_info.get(row.idx)
         if info:
             row.tracking_id = info.get("tracking_id")
             row.shipping_label = "<img src='data:image/gif;base64,%s'"%(info.get('label'))
-            row.tracking_status = "Shipment Label(s) Created"
+            row.tracking_status = "Not Packed"
         else:
             frappe.throw("Error while parsing xml response")
 

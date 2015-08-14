@@ -1,4 +1,5 @@
 import frappe
+from frappe_subscription.frappe_subscription.ups_shipping_rates import get_shipping_rates
 
 def on_delivery_note_cancel(doc, method):
     # check the freeze state of the delivery note
@@ -24,4 +25,14 @@ def on_delivery_note_cancel(doc, method):
         [frappe.delete_doc("Packing Slip", ps_name) for ps_name in ps_to_cancel]
 
         doc.dn_status = "Draft"
-        # update stock ledger
+        # TODO update stock ledger
+
+def on_delivery_note_submit(doc, method):
+    # check packing slips
+    # check if rates are fetched if not fist get ups rates
+
+    if doc.dn_status == "Draft":
+        frappe.throw("Bin Packing Information Not Found ...")
+    elif doc.dn_status != "UPS Rates Fetched":
+        # fetch UPS Rates and
+        get_shipping_rates(doc.name)

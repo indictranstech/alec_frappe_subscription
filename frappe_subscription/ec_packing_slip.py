@@ -17,7 +17,7 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
             ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
             ch.packing_slip = create_packing_slip(delivery_note, bin_info)
             ch.tracking_id = "NA"
-            ch.tracking_status = "NA"
+            ch.tracking_status = "Not Packed"
 
         # freeze the delivery note
         dn.dn_status = "Packing Slips Created"
@@ -34,7 +34,7 @@ def create_packing_slip(delivery_note, bin_detail):
     ps.net_weight_pkg, ps.gross_weight_pkg = total_weight, total_weight
     ps.package_used = bin_detail.get("bin_data").get("id")
     ps.tracking_id = "NA"
-    ps.tracking_status = "NA"
+    ps.tracking_status = "Not Packed"
 
     ps.set("items",[])
     ps.set("bin_items",[])

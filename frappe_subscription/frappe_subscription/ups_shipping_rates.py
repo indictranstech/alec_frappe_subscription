@@ -20,7 +20,14 @@ def get_shipping_rates(delivery_note):
     response = rating_api.request(request)
     shipping_rates = parse_xml_response_to_json(response)
 
-    dn.ups_rates = json.dumps(shipping_rates)
+    # TODO add taxes and charges
+    service_code = shipping_rates.get("service_used") or "03"
+    add_shipping_charges(doc=dn, service_code=service_code)
+
+    # shipping_rates.update({
+    #     "service_used":service_code
+    # })
+    # dn.ups_rates = json.dumps(shipping_rates)
     dn.dn_status = "UPS Rates Fetched"
     dn.save(ignore_permissions= True)
 
@@ -82,3 +89,54 @@ def parse_xml_response_to_json(response):
             frappe.throw("Can Not find the Service and Total Charges Attribute in RatedShipment")
 
     return rates
+
+@frappe.whitelist()
+def add_shipping_charges(doc=None, dn_name=None, service_code=None, shipping_rate=None):
+    dn = frappe.get_doc("Delivery Note",dn_name) if dn_name else doc
+    # check if shipping overhead is already added
+    charges_row = None
+    shipping_charge = 0.0
+    rates = json.loads(dn.ups_rates)
+
+    if service_code == "Manual":
+        shipping_charge = shipping_rate or 0.0
+    else:
+        shipping_charge = rates.get(service_code) or 0.0
+
+    defaults = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
+                                    ["default_account", "cost_center", "shipping_overhead"],
+                                    as_dict=True)[0]
+    for row in dn.taxes:
+        condition = (row.charge_type == "Actual" and row.description == "Shipping Overhead"
+                    and row.account_head == defaults.get("default_account")
+                    and row.cost_center == defaults.get("cost_center"))
+        if condition:
+            # remove row in service code is mannual
+            shipping_charge += (shipping_charge * (flt(defaults.get("shipping_overhead"))/100))
+            update_taxes_and_charges_row(row, shipping_charge, defaults)
+
+            charges_row = row
+
+    if not charges_row:
+        ch = dn.append('taxes', {})
+        update_taxes_and_charges_row(ch, shipping_charge, defaults)
+
+    rates.update({
+        "service_used":service_code
+    })
+    dn.ups_rates = json.dumps(rates)
+
+    # dn.is_manual_shipping = 1 if service_code == "Manual" else 0
+    dn.carrier_shipping_rate = rates.get(service_code) or 0.0
+    dn.total_shipping_rate = shipping_charge
+
+    dn.save(ignore_permissions=True)
+    return "True"
+
+def update_taxes_and_charges_row(row, shipping_charge, defaults):
+    row.charge_type = "Actual"
+    row.account_head = defaults.get("default_account")
+    row.cost_center = defaults.get("cost_center")
+    # row.rate = defaults.get("shipping_overhead")
+    row.tax_amount = shipping_charge
+    row.description = "Shipping Overhead"

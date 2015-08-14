@@ -1,5 +1,5 @@
 import frappe
-
+from lxml.builder import E
 from ups.shipping_package import ShipmentConfirm
 
 class UPSHelper(object):
@@ -107,6 +107,7 @@ class UPSHelper(object):
         for docname in packing_slips:
             doc = frappe.get_doc("Packing Slip",docname)
             item = frappe.get_doc("Item", doc.package_used)
+            package_ref = "%s/%s"%(doc.delivery_note, doc.name)
 
             package_weight = ShipmentConfirm.package_weight_type(
                 Weight= str(doc.gross_weight_pkg), Code="LBS", Description="Weight In Pounds")
@@ -125,6 +126,7 @@ class UPSHelper(object):
                 package_type,
                 package_weight,
                 dimensions,
+                # E.ReferenceNumber(E.Value(package_ref)),
             )
 
             packages.append(package)
