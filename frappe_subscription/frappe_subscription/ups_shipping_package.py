@@ -11,7 +11,8 @@ def get_shipping_labels(delivery_note):
     # create xml request for ups shipping_package
     # parse the xml response and store the shipping labels and tracking_id
 
-    dn = frappe.get_doc("Delivery Note",delivery_note)
+    # dn = frappe.get_doc("Delivery Note",delivery_note)
+    dn = delivery_note
 
     params = Helper.get_ups_api_params()
     shipment_confirm_api = get_shipment_confirm_service(params)
@@ -27,6 +28,8 @@ def get_shipping_labels(delivery_note):
 
     # save tracking no and labels to delivery note
     save_tracking_number_and_shipping_labels(dn, shipping_info)
+    # reduce box items from stock ledger
+    dn.boxes_stock_entry = create_boxes_stock_entry(dn)
 
 def get_shipment_confirm_service(params):
     return ShipmentConfirm(
@@ -112,10 +115,62 @@ def save_tracking_number_and_shipping_labels(dn, shipment_info):
         info = shipment_info.get(row.idx)
         if info:
             row.tracking_id = info.get("tracking_id")
-            row.shipping_label = "<img src='data:image/gif;base64,%s'"%(info.get('label'))
-            row.tracking_status = "Not Packed"
+            row.shipping_label = "<img src='data:image/gif;base64,%s'/>"%(info.get('label'))
+            row.tracking_status = "Labels Printed"
+
+            query = """Update `tabPacking Slip` set tracking_id='%s' where
+                    delivery_note='%s' and name='%s'"""%(info.get("tracking_id"),
+                    dn.name, row.packing_slip)
+            frappe.db.sql(query)
         else:
             frappe.throw("Error while parsing xml response")
 
+        update_packing_slip(row.packing_slip, info)
+
     dn.dn_status = "Shipping Labels Created"
-    dn.save(ignore_permissions=True)
+    # dn.save(ignore_permissions=True)
+
+def update_packing_slip(packing_slip, info):
+    query = """UPDATE `tabPacking Slip` set tracking_id='%s', tracking_status='%s'
+            WHERE name='%s'"""%(info.get("tracking_id"), "Labels Printed",
+            packing_slip)
+    frappe.db.sql(query)
+
+def create_boxes_stock_entry(delivery_note):
+    from datetime import datetime as dt
+
+    doc = delivery_note
+    boxes_used = {}
+    for row in doc.packing_slip_details:
+        qty = (boxes_used.get(row.item_code) + 1) if boxes_used.get(row.item_code) else 1
+        boxes_used.update({
+            row.item_code:qty
+        })
+    se = frappe.new_doc("Stock Entry")
+    se.posting_date = dt.now().strftime("%Y-%m-%d")
+
+    se.posting_time = dt.now().strftime("%H:%M:%S")
+    se.purpose = "Material Issue"
+    se.from_warehouse = "EC Home - EC"
+    se.set("items",[])
+
+    for item, qty in boxes_used.iteritems():
+        ch = se.append("items",{})
+        ret = frappe._dict(se.get_item_details(args={"item_code":item}))
+        ch.item_code = item
+        ch.item_name = ret.item_name
+        ch.qty = qty
+        ch.uom = ret.uom
+        ch.stock_uom = ret.stock_uom
+        ch.description = ret.description
+        ch.image = ch.image
+        ch.expense_account = ret.expense_account
+        ch.cost_center = ret.cost_center
+        ch.conversion_factor = ret.conversion_factor
+        ch.transfer_qty = ret.transfer_qty
+        ch.batch_no = ret.batch_no
+        ch.actual_qty = ret.actual_qty
+        ch.incoming_rate = ret.incoming_rate
+
+    se.submit()
+    return se.name

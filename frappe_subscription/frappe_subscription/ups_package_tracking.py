@@ -93,10 +93,9 @@ def parse_xml_response_to_json(response):
         shipment = response.find("Shipment")
         package = shipment.find("Package")
         activity = package.find("Activity")
-        status = activity.find("Status").find("StatusType").find("Description")
-        return status.text
-#
-# def track_delivery_note_packages(delivery_note):
-#     status = get_package_tracking_status("1Z12345E1512345676")
-#     frappe.errprint(status)
-#     dn = frappe.get_doc("Delivery Note",delivery_note)
+        status_type = activity.find("Status").find("StatusType")
+        #TODO return dict containing codes and discription
+        return {
+            "code": status_type.find("Code"),
+            "description": status_type.find("Description")
+        }

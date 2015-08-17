@@ -19,34 +19,49 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
     }
 }
 
+cur_frm.cscript.fetch_ups_ground_rates = function(doc, cdt, cdn){
+    if(doc.dn_status == "Draft"){
+        frappe.throw("Bin Packing Information not found ...\n");
+    }
+    else{
+        get_rates(doc, true, "Fetching UPS Ground Rate");
+        // new frappe.UPSShippingRates();
+    }
+}
+
 cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
     if(doc.dn_status == "Draft"){
         frappe.throw("Bin Packing Information not found ...\n");
     }
-    else if(doc.dn_status == "UPS Rates Fetched"){
-        new frappe.UPSShippingRates();
-    }
+    // else if(doc.dn_status == "UPS Rates Fetched"){
+    //     new frappe.UPSShippingRates();
+    // }
     else if(doc.dn_status == "Shipping Labels Created"){
         frappe.throw("Shipping Labels are already Created ...\n");
     }
     else{
-        return frappe.call({
-            freeze: true,
-            freeze_message:"Fetching UPS Shipping Rates ...",
-            method: "frappe_subscription.frappe_subscription.ups_shipping_rates.get_shipping_rates",
-            args:{
-                delivery_note:doc.name,
-            },
-            callback: function(r){
-                if(!r.exc) {
-                    // cur_frm.reload_doc();
-                    frappe.msgprint("Fetched UPS Shipping Rates ....");
-                    // TODO POP UP
+        get_rates(doc, false, "Fetching UPS Shipping Rate");
+        // new frappe.UPSShippingRates();
+    }
+}
+
+get_rates = function(doc, is_ground, freeze_message){
+    return frappe.call({
+        freeze: true,
+        freeze_message:freeze_message,
+        method: "frappe_subscription.frappe_subscription.ups_shipping_rates.get_shipping_rates",
+        args:{
+            delivery_note:doc.name,
+        },
+        callback: function(r){
+            if(!r.exc) {
+                cur_frm.reload_doc();
+                if(!is_ground){
                     new frappe.UPSShippingRates();
                 }
-            },
-        });
-    }
+            }
+        },
+    });
 }
 
 frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
@@ -125,18 +140,38 @@ frappe.UPSShippingRates = Class.extend({
             "65":"UPS Saver"
         }
 
+        // TODO sort
+        services = []
         $.each(rates, function(key, val){
-            code = key;
-            desc = service_mapper[key];
-            rate = val
-            is_checked = (code == service) ? "checked" : "";
+            services.push(key)
+        });
+        services = services.sort()
 
+        for (var i = 0; i < services.length; i++) {
+            code = services[i]
+            desc = service_mapper[code];
+            rate = rates[code]
+
+            is_checked = (code == service) ? "checked" : "";
             if(code != "service_used"){
                 $("<tr><td><input type='radio' name='service' value='"+ code +"' "+ is_checked +"></td>\
                     <td align='center'>"+ code +"</td><td align='center'>"+ desc +"</td><td align='center'>"+
                     rate +"</td></tr>").appendTo($("#entries tbody"))
             }
-        })
+        }
+
+        // $.each(rates, function(key, val){
+        //     code = key;
+        //     desc = service_mapper[key];
+        //     rate = val
+        //     is_checked = (code == service) ? "checked" : "";
+        //
+        //     if(code != "service_used"){
+        //         $("<tr><td><input type='radio' name='service' value='"+ code +"' "+ is_checked +"></td>\
+        //             <td align='center'>"+ code +"</td><td align='center'>"+ desc +"</td><td align='center'>"+
+        //             rate +"</td></tr>").appendTo($("#entries tbody"))
+        //     }
+        // })
 
         $(this.pop_up_body).find("[name='service']").click(function(){
             row = $(this).parent().parent();
@@ -148,12 +183,14 @@ frappe.UPSShippingRates = Class.extend({
 cur_frm.cscript.is_manual_shipping = function(doc,cdt,cdn){
     if(doc.is_manual_shipping){
         service = "Manual";
+        doc.total_shipping_rate = 0.0
+        cur_frm.refresh_field("total_shipping_rate")
         set_child_fields_to_readonly(0);
     }
     else{
         service = "03";
         set_child_fields_to_readonly(1);
-        set_up_taxes_and_charges(service, doc.carrier_shipping_rate);
+        set_up_taxes_and_charges(service, 0);
     }
 }
 
@@ -168,11 +205,6 @@ set_child_fields_to_readonly = function(val){
 }
 
 set_up_taxes_and_charges = function(code, rate){
-    // if(service == "Manual")
-    //     set_child_fields_to_readonly(0);
-    // else
-    //     set_child_fields_to_readonly(1)
-
     return frappe.call({
         freeze: true,
         freeze_message:"Setting Up Taxes and Charges ...",

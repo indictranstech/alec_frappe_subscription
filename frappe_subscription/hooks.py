@@ -69,31 +69,32 @@ doc_events = {
 		"on_cancel": "frappe_subscription.ec_packing_slip.on_packing_slip_cancel",
 	},
 	"Delivery Note": {
+		# "before_cancel": "frappe_subscription.frappe_subscription.ec_delivery_note.before_delivery_note_cancel",
 		"on_cancel": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_cancel",
-		"on_submit": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_submit",
+		"before_submit": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_submit",
 	}
 }
 
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"frappe_subscription.tasks.all"
-# 	],
-# 	"daily": [
-# 		"frappe_subscription.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"frappe_subscription.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"frappe_subscription.tasks.weekly"
-# 	]
-# 	"monthly": [
-# 		"frappe_subscription.tasks.monthly"
-# 	]
-# }
+scheduler_events = {
+	# "all": [
+	# 	"frappe_subscription.tasks.all"
+	# ],
+	# "daily": [
+	# 	"frappe_subscription.tasks.daily"
+	# ],
+	"hourly": [
+		"frappe_subscription.frappe_subscription.tasks.track_and_update_packing_slip"
+	]
+	# "weekly": [
+	# 	"frappe_subscription.tasks.weekly"
+	# ]
+	# "monthly": [
+	# 	"frappe_subscription.tasks.monthly"
+	# ]
+}
 
 fixtures = ["Custom Field"]
 

@@ -21,6 +21,7 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
 
         # freeze the delivery note
         dn.dn_status = "Packing Slips Created"
+        dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration","Shipping Configuration","shipping_overhead")
         dn.save(ignore_permissions=True)
     return dn
 
@@ -75,11 +76,6 @@ def create_packing_slip(delivery_note, bin_detail):
 
     return ps.name
 
-# def calculate_total_weight(bin_data):
-#     frappe.errprint(bin_data)
-#     frappe.errprint([bin_data.get("weight"), bin_data.get("used_weight"),(bin_data.get("weight") * 0.01) * (bin_data.get("used_weight") / 100)])
-#     return (bin_data.get("weight") * 0.01) * (bin_data.get("used_weight") / 100)
-
 def get_recommended_case_no(delivery_note):
     """
         Returns the next case no. for a new packing slip for a delivery
@@ -99,15 +95,17 @@ def on_packing_slip_cancel(doc, method):
     if dn.docstatus == 1:
         frappe.throw("Packing Slip is Linked with Submitted Delivery Note : %s"%dn.name)
     elif dn.docstatus == 0:
-        if dn.dn_status not in "Draft":
-            frappe.throw("Delivery Note is in Freezed state can not cancel the Packing Slip")
-        else:
-            to_remove = []
-            for ps in dn.packing_slip_details:
-                if ps.packing_slip == doc.name:
-                    to_remove.append(ps)
-            if to_remove:
-                [dn.remove(ch) for ch in to_remove]
-                dn.save(ignore_permissions = True)
+        # if dn.dn_status not in "Draft":
+        #     frappe.throw("Delivery Note is in Freezed state can not cancel the Packing Slip")
+        # else:
+        to_remove = []
+        for ps in dn.packing_slip_details:
+            if ps.packing_slip == doc.name:
+                to_remove.append(ps)
+        if to_remove:
+            [dn.remove(ch) for ch in to_remove]
+            if not dn.packing_slip_details:
+                dn.dn_status = "Draft"
+            dn.save(ignore_permissions = True)
 
-                frappe.delete_doc("Packing Slip",doc.name)
+            frappe.delete_doc("Packing Slip",doc.name)
