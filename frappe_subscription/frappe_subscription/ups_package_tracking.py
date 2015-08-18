@@ -2,7 +2,7 @@ import frappe
 from lxml.builder import E
 from lxml import etree, objectify
 from ups.base import BaseAPIClient
-# from TrackingRequest import TrackingRequest
+from frappe_subscription.frappe_subscription.tasks import create_scheduler_log
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
 
 class TrackingRequest(BaseAPIClient):
@@ -70,15 +70,20 @@ class TrackingRequest(BaseAPIClient):
 @frappe.whitelist()
 def get_package_tracking_status(tracking_number=None):
     if not tracking_number:
-        frappe.throw("Invalid Input ...")
+        create_scheduler_log("Invalid Input", "get_package_tracking_status",
+                            "Invalid Tracking Number %s : tracking number can not\
+                            be None"%(tracking_number))
     else:
-        params = Helper.get_ups_api_params()
-        tracking_api = get_tracking_service(params)
-        tracking_request = TrackingRequest.tracking_request_type(
-            E.TrackingNumber(tracking_number),
-        )
-        response = tracking_api.request(tracking_request)
-        return parse_xml_response_to_json(response)
+        try:
+            params = Helper.get_ups_api_params()
+            tracking_api = get_tracking_service(params)
+            tracking_request = TrackingRequest.tracking_request_type(
+                E.TrackingNumber(tracking_number),
+            )
+            response = tracking_api.request(tracking_request)
+            return parse_xml_response_to_json(response)
+        except PyUPSException, e:
+            create_scheduler_log(e[0], "get_package_tracking_status", e)
 
 def get_tracking_service(params):
     return TrackingRequest(

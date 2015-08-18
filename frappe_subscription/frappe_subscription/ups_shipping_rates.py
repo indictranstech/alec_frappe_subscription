@@ -6,8 +6,8 @@ from lxml.builder import E
 from frappe.utils import flt
 from ups.base import PyUPSException
 from ups.rating_package import RatingService
-from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
 from frappe_subscription.frappe_subscription.ups_mapper import ups_packages
+from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
 
 @frappe.whitelist()
 def get_shipping_rates(delivery_note):

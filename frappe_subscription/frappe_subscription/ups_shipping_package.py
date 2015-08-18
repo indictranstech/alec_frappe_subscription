@@ -4,6 +4,7 @@ from lxml import etree
 from lxml.builder import E
 from frappe.utils import flt
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept
+# from frappe_subscription.frappe_subscription.tasks import create_scheduler_log
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
 from frappe_subscription.frappe_subscription.ups_mapper import ups_packages, ups_services
 
@@ -14,24 +15,27 @@ def get_shipping_labels(delivery_note):
     # parse the xml response and store the shipping labels and tracking_id
 
     # dn = frappe.get_doc("Delivery Note",delivery_note)
-    dn = delivery_note
+    try:
+        dn = delivery_note
 
-    params = Helper.get_ups_api_params()
-    shipment_confirm_api = get_shipment_confirm_service(params)
-    shipment_accept_api = get_shipment_accept_service(params)
-    shipment_confirm_request = get_ups_shipment_confirm_request(dn, params)
+        params = Helper.get_ups_api_params()
+        shipment_confirm_api = get_shipment_confirm_service(params)
+        shipment_accept_api = get_shipment_accept_service(params)
+        shipment_confirm_request = get_ups_shipment_confirm_request(dn, params)
 
-    response = shipment_confirm_api.request(shipment_confirm_request)
-    digest = shipment_confirm_api.extract_digest(response)
-    shipment_accept_request = ShipmentAccept.shipment_accept_request_type(digest)
-    response = shipment_accept_api.request(shipment_accept_request)
+        response = shipment_confirm_api.request(shipment_confirm_request)
+        digest = shipment_confirm_api.extract_digest(response)
+        shipment_accept_request = ShipmentAccept.shipment_accept_request_type(digest)
+        response = shipment_accept_api.request(shipment_accept_request)
 
-    shipping_info = parse_xml_response_to_json(response)
+        shipping_info = parse_xml_response_to_json(response)
 
-    # save tracking no and labels to delivery note
-    save_tracking_number_and_shipping_labels(dn, shipping_info)
-    # reduce box items from stock ledger
-    dn.boxes_stock_entry = create_boxes_stock_entry(dn)
+        # save tracking no and labels to delivery note
+        save_tracking_number_and_shipping_labels(dn, shipping_info)
+        # reduce box items from stock ledger
+        dn.boxes_stock_entry = create_boxes_stock_entry(dn)
+    except PyUPSException, e:
+        throw(e[0])
 
 def get_shipment_confirm_service(params):
     return ShipmentConfirm(

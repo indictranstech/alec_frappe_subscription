@@ -26,8 +26,8 @@ def track_and_update_packing_slip():
         packing_slips = frappe.db.sql(query,as_dict=True)
 
         for ps in packing_slips:
-            # status = get_package_tracking_status(ps.get("tracking_id"))
-            status = get_package_tracking_status("1Z12345E1512345676")
+            status = get_package_tracking_status(ps.get("tracking_id"))
+            # status = get_package_tracking_status("1Z12345E1512345676")
             code = status.get("code")
             # update status
             query = """UPDATE `tabPacking Slip` SET tracking_status='%s'
@@ -41,6 +41,7 @@ def track_and_update_packing_slip():
             if code == "I":
                 si = make_sales_invoice(source_name=ps.get("delivery_note"), target_doc=None)
                 si.save(ignore_permissions=True)
+                create_todo(si.name, ps.get("delivery_note"))
 
             # check if status is in transit
             # si_against_so = []
@@ -72,3 +73,38 @@ def track_and_update_packing_slip():
             #     for sales_order in si_against_so:
             #         si = make_sales_invoice(source_name=sales_order, target_doc=None)
             #         si.save(ignore_permissions=True)
+
+def create_todo(sales_invoice, delivery_note):
+    query = """SELECT DISTINCT
+                emp.user_id
+            FROM
+                `tabSales Team` team,
+                `tabEmployee` emp,
+                `tabSales Person` per
+            WHERE
+                team.parent='%s'
+            AND per.name=team.sales_person
+            AND emp.name=per.employee"""%(delivery_note)
+
+    sales_users = frappe.db.sql(query,as_dict=True)
+    if not sales_users:
+        create_scheduler_log("Can not create ToDo","create_todo",
+                            "Can not found sales person users")
+    else:
+        for user in sales_user:
+            todo = frappe.new_doc("ToDo")
+            todo.description = "Sales Invoice : %s Against Delivery Note: %s"%(sales_invoice,
+                                delivery_note)
+            todo.allocated_to = user
+            todo.assigned_by = "Administrator"
+            todo.role = "Sales User"
+            todo.reference_type = "Sales Invoice"
+            todo.reference_name = sales_invoice
+            todo.save(ignore_permissions=True)
+
+def create_scheduler_log(msg, method, obj=None):
+	log = frappe.new_doc('Scheduler Log')
+	log.method = method
+	log.error = msg
+	log.obj_traceback = cstr(obj)
+	log.save(ignore_permissions=True)
