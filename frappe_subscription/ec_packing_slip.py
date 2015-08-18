@@ -9,23 +9,34 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
 
     if delivery_note and bin_algo_response:
         bins_packed = bin_algo_response.get("bins_packed")
-        dn.set("packing_slip_details",[])
-        case_no = 1
-        for bin_info in bins_packed:
-            ch = dn.append('packing_slip_details', {})
 
-            ch.item_code = bin_info.get("bin_data").get("id")
-            ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
-            ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
-            ch.tracking_id = "NA"
-            ch.tracking_status = "Not Packed"
-            case_no += 1
+        if len(bins_packed) > 20:
+            frappe.throw("Total number of packages allowed per shipment is 20 \
+                        please delete few items and try again")
+        else:
+            # bins_packed = bins_packed[:20]
+            # bins_to_remove = bins_packed[20:]
+            # remove_bin_items_from_delivery_note(dn, bins_to_remove)
 
-        # freeze the delivery note
-        dn.dn_status = "Packing Slips Created"
-        dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration","Shipping Configuration","shipping_overhead")
-        dn.save(ignore_permissions=True)
-    return dn
+            dn.set("packing_slip_details",[])
+            case_no = 1
+            for bin_info in bins_packed:
+                ch = dn.append('packing_slip_details', {})
+
+                ch.item_code = bin_info.get("bin_data").get("id")
+                ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
+                ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
+                ch.tracking_id = "NA"
+                ch.tracking_status = "Not Packed"
+                case_no += 1
+
+            # freeze the delivery note
+            dn.dn_status = "Packing Slips Created"
+            dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration",
+                                                            "Shipping Configuration",
+                                                            "shipping_overhead")
+            dn.save(ignore_permissions=True)
+            return dn
 
 def create_packing_slip(delivery_note, case_no, bin_detail):
     # get items and create the packing slip
@@ -110,3 +121,28 @@ def on_packing_slip_cancel(doc, method):
             dn.save(ignore_permissions = True)
 
             frappe.delete_doc("Packing Slip",doc.name)
+
+# def remove_bin_items_from_delivery_note(dn_doc, bin_details):
+#     # get item info
+#     # count item qty and remove or deduct from delivery note items
+#     items_qty = {}
+#
+#     for _bin in bin_details:
+#         items = _bin.get("items")
+#         for item in items:
+#             item_code = item.get("id")
+#             items_qty.update({
+#                 item_code: (items_qty.get(item_code) or 0) + 1,
+#             })
+#
+#     to_remove = []
+#     for row in dn_doc.items:
+#         dn_item_code = row.item_code
+#         if items_qty.get(dn_item_code):
+#             # if delivery note item qty same as bins items qty then delete whole row
+#             if row.qty == items_qty.get(dn_item_code):
+#                 to_remove.append(row)
+#             else:
+#                 row.qty -= items_qty.get(dn_item_code):
+#
+#     [dn_doc.remove(ch) for ch in to_remove]

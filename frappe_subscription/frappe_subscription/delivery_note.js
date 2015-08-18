@@ -159,19 +159,6 @@ frappe.UPSShippingRates = Class.extend({
             }
         }
 
-        // $.each(rates, function(key, val){
-        //     code = key;
-        //     desc = service_mapper[key];
-        //     rate = val
-        //     is_checked = (code == service) ? "checked" : "";
-        //
-        //     if(code != "service_used"){
-        //         $("<tr><td><input type='radio' name='service' value='"+ code +"' "+ is_checked +"></td>\
-        //             <td align='center'>"+ code +"</td><td align='center'>"+ desc +"</td><td align='center'>"+
-        //             rate +"</td></tr>").appendTo($("#entries tbody"))
-        //     }
-        // })
-
         $(this.pop_up_body).find("[name='service']").click(function(){
             row = $(this).parent().parent();
             service = row.find("[name='service']").val()
