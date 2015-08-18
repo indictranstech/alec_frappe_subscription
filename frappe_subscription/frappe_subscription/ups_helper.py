@@ -4,6 +4,7 @@ from ups.shipping_package import ShipmentConfirm
 
 class UPSHelper(object):
     """docstring for UPSHelper"""
+    # TODO mappers
 
     @staticmethod
     def get_ups_api_params():

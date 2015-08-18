@@ -40,8 +40,8 @@ cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
         frappe.throw("Shipping Labels are already Created ...\n");
     }
     else{
-        get_rates(doc, false, "Fetching UPS Shipping Rate");
-        // new frappe.UPSShippingRates();
+        // get_rates(doc, false, "Fetching UPS Shipping Rate");
+        new frappe.UPSShippingRates();
     }
 }
 
@@ -140,7 +140,6 @@ frappe.UPSShippingRates = Class.extend({
             "65":"UPS Saver"
         }
 
-        // TODO sort
         services = []
         $.each(rates, function(key, val){
             services.push(key)

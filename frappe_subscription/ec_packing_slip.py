@@ -10,14 +10,16 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
     if delivery_note and bin_algo_response:
         bins_packed = bin_algo_response.get("bins_packed")
         dn.set("packing_slip_details",[])
+        case_no = 1
         for bin_info in bins_packed:
             ch = dn.append('packing_slip_details', {})
 
             ch.item_code = bin_info.get("bin_data").get("id")
             ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
-            ch.packing_slip = create_packing_slip(delivery_note, bin_info)
+            ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
             ch.tracking_id = "NA"
             ch.tracking_status = "Not Packed"
+            case_no += 1
 
         # freeze the delivery note
         dn.dn_status = "Packing Slips Created"
@@ -25,11 +27,11 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
         dn.save(ignore_permissions=True)
     return dn
 
-def create_packing_slip(delivery_note, bin_detail):
+def create_packing_slip(delivery_note, case_no, bin_detail):
     # get items and create the packing slip
     ps = frappe.new_doc("Packing Slip")
     ps.delivery_note = delivery_note
-    case_no = get_recommended_case_no(delivery_note)
+    # case_no = get_recommended_case_no(delivery_note)
     ps.from_case_no, ps.to_case_no = case_no, case_no
     total_weight = flt(bin_detail.get("bin_data").get("weight"))
     ps.net_weight_pkg, ps.gross_weight_pkg = total_weight, total_weight
@@ -73,7 +75,6 @@ def create_packing_slip(delivery_note, bin_detail):
         ch_item.batch_no = dn_item.get("batch_no")
 
     ps.submit()
-
     return ps.name
 
 def get_recommended_case_no(delivery_note):
@@ -83,7 +84,7 @@ def get_recommended_case_no(delivery_note):
     """
     recommended_case_no = frappe.db.sql("""SELECT MAX(to_case_no) FROM `tabPacking Slip`
         WHERE delivery_note = %s AND docstatus=1""", delivery_note)
-
+    frappe.errprint([recommended_case_no, cint(recommended_case_no[0][0])])
     return cint(recommended_case_no[0][0]) + 1
 
 def on_packing_slip_cancel(doc, method):

@@ -26,8 +26,8 @@ def track_and_update_packing_slip():
         packing_slips = frappe.db.sql(query,as_dict=True)
 
         for ps in packing_slips:
-            status = get_package_tracking_status(ps.get("tracking_id"))
-            # status = get_package_tracking_status("1Z12345E1512345676")
+            # status = get_package_tracking_status(ps.get("tracking_id"))
+            status = get_package_tracking_status("1Z12345E1512345676")
             code = status.get("code")
             # update status
             query = """UPDATE `tabPacking Slip` SET tracking_status='%s'
@@ -38,34 +38,37 @@ def track_and_update_packing_slip():
                     ps.get("delivery_note"),ps.get("name"))
             frappe.db.sql(query)
 
-            # check if status is in transit
-            si_against_so = []
             if code == "I":
-                query = """SELECT DISTINCT
-                            si.parent,
-                            si.sales_order
-                        FROM
-                            `tabSales Invoice Item` si,
-                            `tabDelivery Note Item` dni
-                        WHERE
-                            dni.parent='%s'
-                        AND si.sales_order=dni.against_sales_order
-                        GROUP BY
-                            si.sales_order"""%(ps.get("delivery_note"))
+                si = make_sales_invoice(source_name=ps.get("delivery_note"), target_doc=None)
+                si.save(ignore_permissions=True)
 
-                sales_orders = frappe.db.get_values("Delivery Note Item", {"parent":ps.get("delivery_note")}, "against_sales_order", as_dict=True)
-                sales_orders = list(set([so.get("against_sales_order") for so in sales_orders]))
-                results = frappe.db.sql(query, as_dict=True)
-
-                if results:
-                    for res in results:
-                        if res.get("sales_order") in sales_orders:
-                            si_against_so.append(res.get("sales_order"))
-                else:
-                    si_against_so = sales_orders
-
-            if si_against_so:
-                for sales_order in si_against_so:
-                    si = make_sales_invoice(source_name=sales_order, target_doc=None)
-                    si.save(ignore_permissions=True)
-                    print si.name
+            # check if status is in transit
+            # si_against_so = []
+            # if code == "I":
+            #     query = """SELECT DISTINCT
+            #                 si.parent,
+            #                 si.sales_order
+            #             FROM
+            #                 `tabSales Invoice Item` si,
+            #                 `tabDelivery Note Item` dni
+            #             WHERE
+            #                 dni.parent='%s'
+            #             AND si.sales_order=dni.against_sales_order
+            #             GROUP BY
+            #                 si.sales_order"""%(ps.get("delivery_note"))
+            #
+            #     sales_orders = frappe.db.get_values("Delivery Note Item", {"parent":ps.get("delivery_note")}, "against_sales_order", as_dict=True)
+            #     sales_orders = list(set([so.get("against_sales_order") for so in sales_orders]))
+            #     results = frappe.db.sql(query, as_dict=True)
+            #
+            #     if results:
+            #         for res in results:
+            #             if res.get("sales_order") in sales_orders:
+            #                 si_against_so.append(res.get("sales_order"))
+            #     else:
+            #         si_against_so = sales_orders
+            #
+            # if si_against_so:
+            #     for sales_order in si_against_so:
+            #         si = make_sales_invoice(source_name=sales_order, target_doc=None)
+            #         si.save(ignore_permissions=True)
