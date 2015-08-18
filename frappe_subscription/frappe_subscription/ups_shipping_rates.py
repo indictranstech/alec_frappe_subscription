@@ -7,6 +7,7 @@ from frappe.utils import flt
 from ups.base import PyUPSException
 from ups.rating_package import RatingService
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
+from frappe_subscription.frappe_subscription.ups_mapper import ups_packages
 
 @frappe.whitelist()
 def get_shipping_rates(delivery_note):
@@ -50,7 +51,7 @@ def get_ups_rating_request(delivery_note, params):
 
     ship_from_address_name = params.get("default_warehouse")
     shipper_number = params.get("shipper_number")
-    package_type = params.get("package_type")
+    package_type = ups_packages.get(params.get("package_type"))
     ship_to_params = {
         "customer":dn.customer,
         "contact_display":dn.contact_display,
@@ -63,7 +64,7 @@ def get_ups_rating_request(delivery_note, params):
                     Helper.get_ship_from_address(params, ship_from_address_name),
                     RatingService.service_type(Code='03'),
                 )
-    packages = Helper.get_packages(packing_slips, "02")
+    packages = Helper.get_packages(packing_slips, package_type)
     shipment.extend(packages)
 
     rating_request = RatingService.rating_request_type(

@@ -1,9 +1,11 @@
 import frappe
+import json
 from lxml import etree
 from lxml.builder import E
 from frappe.utils import flt
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
+from frappe_subscription.frappe_subscription.ups_mapper import ups_packages, ups_services
 
 @frappe.whitelist()
 def get_shipping_labels(delivery_note):
@@ -55,21 +57,26 @@ def get_ups_shipment_confirm_request(delivery_note, params):
 
     ship_from_address_name = params.get("default_warehouse")
     shipper_number = params.get("shipper_number")
-    package_type = params.get("package_type")
+    package_type = ups_packages.get(params.get("package_type"))
+    rates = {}
+    if dn.ups_rates:
+        rates = json.loads(dn.ups_rates)
+    service_code = rates.get("service_used") or "03"
     ship_to_params = {
         "customer":dn.customer,
         "contact_display":dn.contact_display,
         "contact_mobile":dn.contact_mobile
     }
 
-    packages = Helper.get_packages(packing_slips, "02")
+    packages = Helper.get_packages(packing_slips, package_type)
 
     request = ShipmentConfirm.shipment_confirm_request_type(
         Helper.get_shipper(params),
         Helper.get_ship_to_address(ship_to_params, dn.shipping_address_name,),
         Helper.get_ship_from_address(params, ship_from_address_name),
         Helper.get_payment_info(AccountNumber=shipper_number),
-        ShipmentConfirm.service_type(Code='03'),    # UPS Standard
+        # ShipmentConfirm.service_type(Code='03'),    # UPS Standard #TODO add service_type
+        ShipmentConfirm.service_type(Code=service_code),
         Description="Description"
     )
     request.find("Shipment").extend(packages)
