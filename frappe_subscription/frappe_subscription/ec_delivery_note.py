@@ -44,6 +44,13 @@ def on_delivery_note_submit(doc, method):
             get_shipping_rates(doc.name)
         validate_address(doc)
         get_shipping_labels(doc)
+    else:
+        # Update tracking id and tracking status on packing slip
+        for ps_details in doc.packing_slip_details:
+            query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
+                    track_status='Manual' WHERE name='%s'"""%(ps_details.tracking_id,
+                    ps_details.tracking_status, ps_details.packing_slip)
+            frappe.db.sql(query)
 
 def validate_address(doc):
     if not doc.shipping_address_name:

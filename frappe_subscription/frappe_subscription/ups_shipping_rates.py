@@ -138,7 +138,7 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
         })
         dn.ups_rates = json.dumps(rates)
 
-        # dn.is_manual_shipping = 1 if service_code == "Manual" else 0
+        dn.is_manual_shipping = 1 if service_code == "Manual" else 0
         dn.carrier_shipping_rate = shipping_charge or 0.0
         dn.total_shipping_rate = total_charge
 
