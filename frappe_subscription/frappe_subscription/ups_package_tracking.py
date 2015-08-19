@@ -1,8 +1,9 @@
 import frappe
 from lxml.builder import E
+from frappe.utils import cstr
 from lxml import etree, objectify
 from ups.base import BaseAPIClient
-from frappe_subscription.frappe_subscription.tasks import create_scheduler_log
+from ups.base import PyUPSException
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
 
 class TrackingRequest(BaseAPIClient):
@@ -72,7 +73,7 @@ def get_package_tracking_status(tracking_number=None):
     if not tracking_number:
         create_scheduler_log("Invalid Input", "get_package_tracking_status",
                             "Invalid Tracking Number %s : tracking number can not\
-                            be None"%(tracking_number))
+                            be None"%(tracking_number), tracking_number)
     else:
         try:
             params = Helper.get_ups_api_params()
@@ -83,7 +84,7 @@ def get_package_tracking_status(tracking_number=None):
             response = tracking_api.request(tracking_request)
             return parse_xml_response_to_json(response)
         except PyUPSException, e:
-            create_scheduler_log(e[0], "get_package_tracking_status", e)
+            create_scheduler_log(e[0], "get_package_tracking_status", tracking_number, e)
 
 def get_tracking_service(params):
     return TrackingRequest(
@@ -104,3 +105,9 @@ def parse_xml_response_to_json(response):
             "code": status_type.find("Code"),
             "description": status_type.find("Description")
         }
+
+def create_scheduler_log(msg, method, tracking_id, obj=None):
+	log = frappe.new_doc('Scheduler Log')
+	log.method = method
+	log.error = "Tracking ID : %s \nError : %s"%(tracking_id, msg)
+	log.save(ignore_permissions=True)
