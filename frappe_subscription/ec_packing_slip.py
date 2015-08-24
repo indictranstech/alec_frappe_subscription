@@ -1,42 +1,58 @@
 import frappe
+import json
 from frappe.utils import flt, cint
 
 def get_packing_slip_details(delivery_note, bin_algo_response= None):
     # 1: get packing bin data
     # 2: for each bin create separate packing slip then create the packing deatils
     #    for DN
-    dn = frappe.get_doc("Delivery Note",delivery_note)
+    if bin_algo_response.get("status"):
+        dn = frappe.get_doc("Delivery Note",delivery_note)
 
-    if delivery_note and bin_algo_response:
-        bins_packed = bin_algo_response.get("bins_packed")
+        if delivery_note and bin_algo_response:
+            bins_packed = bin_algo_response.get("bins_packed")
 
-        if len(bins_packed) > 20:
-            frappe.throw("Total number of packages allowed per shipment is 20 \
-                        please delete few items and try again")
-        else:
-            # bins_packed = bins_packed[:20]
-            # bins_to_remove = bins_packed[20:]
-            # remove_bin_items_from_delivery_note(dn, bins_to_remove)
+            if not bins_packed:
+                throw_bin_packing_error(bin_algo_response)
+            elif len(bins_packed) > 20:
+                frappe.throw("Total number of packages allowed per shipment is 20 \
+                            please delete few items and try again")
+            else:
+                # bins_packed = bins_packed[:20]
+                # bins_to_remove = bins_packed[20:]
+                # remove_bin_items_from_delivery_note(dn, bins_to_remove)
 
-            dn.set("packing_slip_details",[])
-            case_no = 1
-            for bin_info in bins_packed:
-                ch = dn.append('packing_slip_details', {})
+                dn.set("packing_slip_details",[])
+                case_no = 1
+                for bin_info in bins_packed:
+                    ch = dn.append('packing_slip_details', {})
 
-                ch.item_code = bin_info.get("bin_data").get("id")
-                ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
-                ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
-                ch.tracking_id = "NA"
-                ch.tracking_status = "Not Packed"
-                case_no += 1
+                    ch.item_code = bin_info.get("bin_data").get("id")
+                    ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
+                    ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
+                    ch.tracking_id = "NA"
+                    ch.tracking_status = "Not Packed"
+                    case_no += 1
 
-            # freeze the delivery note
-            dn.dn_status = "Packing Slips Created"
-            dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration",
-                                                            "Shipping Configuration",
-                                                            "shipping_overhead")
-            dn.save(ignore_permissions=True)
-            return dn
+                # freeze the delivery note
+                if bin_algo_response.get("not_packed_items"):
+                    dn.dn_status = "Parially Packed"
+                    items = get_not_packed_items(bin_algo_response.get("not_packed_items"))
+                    dn.not_packed_items = json.dumps(items)
+                else:
+                    dn.dn_status = "Packing Slips Created"
+
+                dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration",
+                                                                "Shipping Configuration",
+                                                                "shipping_overhead")
+                dn.save(ignore_permissions=True)
+                # return dn
+                return {
+                    "status": dn.dn_status,
+                    "not_packed_items":dn.not_packed_items
+                }
+    else:
+        throw_bin_packing_error(bin_algo_response)
 
 def create_packing_slip(delivery_note, case_no, bin_detail):
     # get items and create the packing slip
@@ -155,3 +171,18 @@ def on_packing_slip_update(doc, method):
 #                 row.qty -= items_qty.get(dn_item_code):
 #
 #     [dn_doc.remove(ch) for ch in to_remove]
+
+def throw_bin_packing_error(bin_algo_response):
+    msg = "Error occured while creating packing slips\n"
+    for error in bin_algo_response.get("errors"):
+        if error.get("message"):
+            msg += "%s\n"%(error.get("message"))
+    frappe.throw(msg)
+
+def get_not_packed_items(not_packed_items):
+    items = {}
+    for item in not_packed_items:
+        items.update({
+            item.get("id"): item.get("q")
+        })
+    return items

@@ -12,7 +12,17 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
             callback: function(r){
                 if(!r.exc) {
                     cur_frm.reload_doc();
-                    frappe.msgprint("Packing Slip Created");
+                    if(r.message.status == "Packing Slips Created"){
+                        frappe.msgprint("Packing Slip Created");
+                    }
+                    else if(r.message.status == "Parially Packed"){
+                        msg = "Following Items are Not Packed : ";
+                        items = JSON.parse(r.message.not_packed_items);
+                        $.each(items, function(key, val){
+                            msg += "\nItem : "+key+", Qty : "+val;
+                        })
+                        frappe.msgprint(msg);
+                    }
                 }
             },
         });

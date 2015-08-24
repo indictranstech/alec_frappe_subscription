@@ -3,6 +3,7 @@ import json
 from lxml import etree
 from lxml.builder import E
 from frappe.utils import flt
+from ups.base import PyUPSException
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept
 # from frappe_subscription.frappe_subscription.tasks import create_scheduler_log
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
@@ -35,7 +36,7 @@ def get_shipping_labels(delivery_note):
         # reduce box items from stock ledger
         dn.boxes_stock_entry = create_boxes_stock_entry(dn)
     except PyUPSException, e:
-        throw(e[0])
+        frappe.throw(e[0])
 
 def get_shipment_confirm_service(params):
     return ShipmentConfirm(

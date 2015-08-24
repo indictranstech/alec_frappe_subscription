@@ -71,6 +71,7 @@ doc_events = {
 	},
 	"Delivery Note": {
 		# "before_cancel": "frappe_subscription.frappe_subscription.ec_delivery_note.before_delivery_note_cancel",
+		# "validate": "frappe_subscription.frappe_subscription.ec_delivery_note.validate_address",
 		"on_cancel": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_cancel",
 		"before_submit": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_submit",
 	}
