@@ -38,6 +38,9 @@ def on_delivery_note_submit(doc, method):
 
     if doc.dn_status == "Draft":
         frappe.throw("Bin Packing Information Not Found ...")
+    elif doc.dn_status == "Parially Packed":
+        frappe.throw("Delivery Note Items are paritally Packed")
+
     if  doc.is_manual_shipping == 0:
         # get_shipping_rates(doc.name) if doc.dn_status == "Packing Slips Created" else get_shipping_labels(doc)
         if doc.dn_status == "Packing Slips Created":
