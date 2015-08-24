@@ -52,21 +52,21 @@ class UPSHelper(object):
     def get_address(doc, is_ship_from= False):
         if is_ship_from:
             return ShipmentConfirm.address_type(
-                AddressLine1= doc.address_line_1,
-                AddressLine2= doc.address_line_2,
-                City= doc.city,
-                StateProvinceCode= doc.state,
-                CountryCode= doc.country,
-                PostalCode= doc.pin_code
+                AddressLine1= doc.address_line_1 or "",
+                AddressLine2= doc.address_line_2 or "",
+                City= doc.city or "",
+                StateProvinceCode= doc.state or "",
+                CountryCode= doc.country or "",
+                PostalCode= doc.pin_code or ""
             )
         else:
             return ShipmentConfirm.address_type(
-                AddressLine1= doc.address_line1,
+                AddressLine1= doc.address_line1 or "",
                 AddressLine2= doc.address_line2 or "",
-                City= doc.city,
-                StateProvinceCode= doc.state,
-                CountryCode= frappe.db.get_value("Country",doc.country,"code"),
-                PostalCode=str(doc.pincode),
+                City= doc.city or "",
+                StateProvinceCode= doc.state or "",
+                CountryCode= frappe.db.get_value("Country",doc.country,"code") or "",
+                PostalCode=str(doc.pincode) or "",
             )
 
     @staticmethod
