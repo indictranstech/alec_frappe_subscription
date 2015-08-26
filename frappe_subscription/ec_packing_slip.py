@@ -85,6 +85,8 @@ def create_packing_slip(delivery_note, case_no, bin_detail):
         items.update({
             ch_bin_item.item_code:qty
         })
+    # preparing print format
+    ps.bin_packing_info = prepare_images_for_print_format(bin_detail.get("items"))
 
     # adding items
     for item,qty in items.iteritems():
@@ -186,3 +188,33 @@ def get_not_packed_items(not_packed_items):
             item.get("id"): item.get("q")
         })
     return items
+
+def prepare_images_for_print_format(items):
+    # ch_bin_item.image_sbs = "<img src='data:image/png;base64,%s'/>"%(item.get("image_sbs"))
+    bin_packing_info = ""
+
+    total_items = len(items)
+    reqd_row = (total_items // 4) if (total_items % 4 == 0) else (total_items // 4) + 1
+    grid_size = 12/total_items if total_items < 4 else 3
+
+    item_count = 0
+    for idx in xrange(0, reqd_row):
+        bin_packing_info += """<div class="row">"""
+        start_idx = idx * 4
+        end_idx = start_idx + 4
+        for i in xrange(start_idx, end_idx):
+            if item_count < total_items:
+                bin_packing_info += """<div class="col-xs-%s" align="center">\
+                                    <div class="row"><div class="col-xs-12" align="center"><b>%s</b>\
+                                    </div></div><div class="row"><div class="col-xs-12">\
+                                    <img src='data:image/png;base64,%s'/></div></div><br>\
+                                    <div class="row"><div class="col-xs-12" align="center">\
+                                    <b>Item :</b> %s</div></div></div>"""%(grid_size,
+                                    item_count+1, items[i].get("image_sbs"), items[i].get("id"))
+                item_count += 1
+            else:
+                break
+
+        bin_packing_info += """</div><br>"""
+
+    return bin_packing_info
