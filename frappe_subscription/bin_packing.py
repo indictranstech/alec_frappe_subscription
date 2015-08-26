@@ -87,7 +87,7 @@ def get_item_details(item_code, qty):
                 }
                 return to_dict
             else:
-                frappe.throw("Please set the valid dimension details for {0}-{1} item".format(item.item_code, item.item_name))
+                frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
 
 def get_bin_details():
     # get item with item group boxes
