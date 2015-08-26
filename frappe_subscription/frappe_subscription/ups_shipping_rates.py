@@ -131,7 +131,7 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
 
         if not charges_row:
             ch = dn.append('taxes', {})
-            update_taxes_and_charges_row(ch, total_charge, defaults)
+            ch = update_taxes_and_charges_row(ch, total_charge, defaults)
 
         rates.update({
             "service_used":service_code
@@ -155,3 +155,4 @@ def update_taxes_and_charges_row(row, shipping_charge, defaults):
     # row.rate = defaults.get("shipping_overhead")
     row.tax_amount = shipping_charge
     row.description = "Shipping Overhead"
+    return row

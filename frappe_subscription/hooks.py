@@ -65,6 +65,9 @@ app_version = "0.0.1"
 # Hook on document methods and events
 
 doc_events = {
+	"Sales Order": {
+		"validate": "frappe_subscription.frappe_subscription.ec_sales_order_item.validate_items",
+	},
 	"Packing Slip": {
 		"on_cancel": "frappe_subscription.ec_packing_slip.on_packing_slip_cancel",
 		"on_update_after_submit": "frappe_subscription.ec_packing_slip.on_packing_slip_update",
@@ -75,7 +78,7 @@ doc_events = {
 	},
 	"Item":{
 		"validate": "frappe_subscription.frappe_subscription.ec_item.validate_dimensions",
-	}
+	},
 }
 
 # Scheduled Tasks

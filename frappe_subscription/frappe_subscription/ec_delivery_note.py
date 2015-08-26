@@ -44,16 +44,29 @@ def on_delivery_note_submit(doc, method):
     if  doc.is_manual_shipping == 0:
         # get_shipping_rates(doc.name) if doc.dn_status == "Packing Slips Created" else get_shipping_labels(doc)
         if doc.dn_status == "Packing Slips Created":
-            get_shipping_rates(doc.name)
+            # get_shipping_rates(doc.name)
+            frappe.throw("First Add the Shipping Overhead")
         validate_address(doc)
         get_shipping_labels(doc)
     else:
-        # Update tracking id and tracking status on packing slip
-        for ps_details in doc.packing_slip_details:
-            query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
-                    track_status='Manual' WHERE name='%s'"""%(ps_details.tracking_id,
-                    ps_details.tracking_status, ps_details.packing_slip)
-            frappe.db.sql(query)
+        # validate if shipping overhead is calculated
+        condition = False
+        params = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
+                            ["default_account","cost_center"], as_dict=True)[0]
+        for tax in doc.taxes:
+            if tax.charge_type == "Actual" and tax.account_head == params.get("default_account") and tax.cost_center == params.get("cost_center"):
+                condition = True
+                break
+
+        if doc.carrier_shipping_rate and condition:
+            # Update tracking id and tracking status on packing slip
+            for ps_details in doc.packing_slip_details:
+                query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
+                        track_status='Manual' WHERE name='%s'"""%(ps_details.tracking_id,
+                        ps_details.tracking_status, ps_details.packing_slip)
+                frappe.db.sql(query)
+        else:
+            frappe.throw("First Add the Shipping Overhead")
 
 def validate_address(doc):
     if not doc.shipping_address_name:
