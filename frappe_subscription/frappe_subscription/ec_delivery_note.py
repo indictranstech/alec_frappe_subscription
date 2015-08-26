@@ -46,7 +46,7 @@ def on_delivery_note_submit(doc, method):
         if doc.dn_status == "Packing Slips Created":
             # get_shipping_rates(doc.name)
             frappe.throw("First Add the Shipping Overhead")
-        validate_address(doc)
+        # validate_address(doc, method)
         get_shipping_labels(doc)
     else:
         # validate if shipping overhead is calculated
@@ -68,6 +68,6 @@ def on_delivery_note_submit(doc, method):
         else:
             frappe.throw("First Add the Shipping Overhead")
 
-def validate_address(doc):
+def validate_address(doc, method):
     if not doc.shipping_address_name:
         frappe.throw("Shipping address required")
