@@ -43,20 +43,16 @@ def on_delivery_note_submit(doc, method):
 
     if  doc.is_manual_shipping == 0:
         # get_shipping_rates(doc.name) if doc.dn_status == "Packing Slips Created" else get_shipping_labels(doc)
-        if doc.dn_status == "Packing Slips Created":
+        condition = is_shipping_overhead_available(doc)
+
+        if (doc.dn_status == "Packing Slips Created") or (not condition):
             # get_shipping_rates(doc.name)
             frappe.throw("First Add the Shipping Overhead")
-        # validate_address(doc, method)
+
         get_shipping_labels(doc)
     else:
         # validate if shipping overhead is calculated
-        condition = False
-        params = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
-                            ["default_account","cost_center"], as_dict=True)[0]
-        for tax in doc.taxes:
-            if tax.charge_type == "Actual" and tax.account_head == params.get("default_account") and tax.cost_center == params.get("cost_center"):
-                condition = True
-                break
+        condition = is_shipping_overhead_available(doc)
 
         if doc.carrier_shipping_rate and condition:
             # Update tracking id and tracking status on packing slip
@@ -67,6 +63,19 @@ def on_delivery_note_submit(doc, method):
                 frappe.db.sql(query)
         else:
             frappe.throw("First Add the Shipping Overhead")
+
+def is_shipping_overhead_available(doc):
+    condition = False
+    params = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
+                        ["default_account","cost_center"], as_dict=True)[0]
+    if not doc.taxes:
+        return condition
+    else:
+        for tax in doc.taxes:
+            if tax.charge_type == "Actual" and tax.account_head == params.get("default_account") and tax.cost_center == params.get("cost_center"):
+                condition = True
+                break
+        return condition
 
 def validate_address(doc, method):
     if not doc.shipping_address_name:
