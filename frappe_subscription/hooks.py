@@ -77,6 +77,9 @@ doc_events = {
 		"on_cancel": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_cancel",
 		"before_submit": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_submit",
 	},
+	"Address":{
+		"validate": "frappe_subscription.frappe_subscription.ec_address.validate_address",
+	},
 	"Item":{
 		"validate": "frappe_subscription.frappe_subscription.ec_item.validate_dimensions",
 	},
