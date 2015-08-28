@@ -52,13 +52,13 @@ def get_items_to_pack(dn):
 
         for item in dn.items:
             to_dict = get_item_details(item.item_code, item.qty)
-            items_to_pack.append(to_dict)
+            if to_dict: items_to_pack.append(to_dict)
     elif dn.dn_status == "Parially Packed":
         items = json.loads(dn.not_packed_items)
 
         for item_code, qty in items.iteritems():
             to_dict = get_item_details(item_code, qty)
-            items_to_pack.append(to_dict)
+            if to_dict: items_to_pack.append(to_dict)
 
     return items_to_pack
 
