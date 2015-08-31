@@ -125,7 +125,9 @@ def get_item_with_unique_box_details(item_code, qty):
     item_details = frappe.db.get_values("Item",item_code,
                                         ["item_group", "unique_box_for_packing", "height", "width", "length", "weight_","box"],
                                         as_dict=True)
-
+    box_details = frappe.db.get_values("Item",item_details[0].get("box"),
+                                        ["item_group", "height", "width", "length", "weight_"],
+                                        as_dict=True)
     if not item_details:
         frappe.throw("Invalid Item")
     else:
@@ -138,16 +140,42 @@ def get_item_with_unique_box_details(item_code, qty):
 
             if height and width and depth and weight:
                 # valid item continue with further processing
-                item = [{
-                    "w": width, "h": height,
-                    "d": depth, "q": qty,
-                    "vr": 1, "id": item_code,
-                    "wg": weight,
-                    "image_sbs": ""
-                }]
-                return to_dict
+                to_dict.update({
+                    "items":[{
+                        "w": width, "h": height,
+                        "d": depth, "id": item_code,
+                        "wg": weight,
+                        "image_sbs": ""
+                    }]
+                })
             else:
                 frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
+
+    if not box_details:
+        frappe.throw("Invalid Box")
+    else:
+        item_group = box_details[0].get("item_group")
+        frappe.errprint(item_group)
+        if (item_group == "Boxes"):
+            height = box_details[0].get("height") or 0
+            width = box_details[0].get("width") or 0
+            depth = box_details[0].get("length") or 0
+            weight = box_details[0].get("weight_") or 0
+
+            if height and width and depth and weight:
+                # valid item continue with further processing
+                to_dict.update({
+                    "bin_data":{
+                        "w": width, "h": height,
+                        "d": depth, "q": qty,
+                        "vr": 1, "id": item_code,
+                        "used_space": 100, "weight": weight,
+                        "used_weight": 100
+                    }
+                })
+            else:
+                frappe.throw("Please set the valid dimension details for {0} Box item".format(item_code))
+    return to_dict
 
 def get_bin_details():
     # get item with item group boxes
