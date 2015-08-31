@@ -2,11 +2,11 @@ import frappe
 import json
 from frappe.utils import flt, cint
 
-def get_packing_slip_details(delivery_note, bin_algo_response= None):
+def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_items= None):
     # 1: get packing bin data
     # 2: for each bin create separate packing slip then create the packing deatils
     #    for DN
-    if bin_algo_response.get("status"):
+    if bin_algo_response.get("status") or unique_box_items:
         dn = frappe.get_doc("Delivery Note",delivery_note)
 
         if delivery_note and bin_algo_response:
@@ -21,7 +21,6 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None):
                 # bins_packed = bins_packed[:20]
                 # bins_to_remove = bins_packed[20:]
                 # remove_bin_items_from_delivery_note(dn, bins_to_remove)
-
                 dn.set("packing_slip_details",[])
                 case_no = 1
                 for bin_info in bins_packed:
@@ -113,7 +112,6 @@ def get_recommended_case_no(delivery_note):
     """
     recommended_case_no = frappe.db.sql("""SELECT MAX(to_case_no) FROM `tabPacking Slip`
         WHERE delivery_note = %s AND docstatus=1""", delivery_note)
-    frappe.errprint([recommended_case_no, cint(recommended_case_no[0][0])])
     return cint(recommended_case_no[0][0]) + 1
 
 def on_packing_slip_cancel(doc, method):

@@ -33,6 +33,12 @@ def get_bin_packing_details(delivery_note):
         frappe.throw("Delivery Note is in Freezed state")
     else:
         items_to_pack = get_items_to_pack(dn)
+        to_pack = [item.get("id") for item in items_to_pack]
+        unique_box_items = {item.item_code:item.qty for item in dn.items if item.item_code not in to_pack}
+        items_with_unique_boxes = []
+        for item,qty in unique_box_items.iteritems():
+            item_details = get_item_with_unique_box_details(item, qty)
+            [items_with_unique_boxes.append(item_details) for i in xrange(int(qty))]
 
         if items_to_pack:
             # prepare 3d bin packing request in json format
@@ -40,7 +46,9 @@ def get_bin_packing_details(delivery_note):
             credentials = get_bin_packing_credentials()
             request = get_bin_packing_request(bins,items_to_pack,credentials,params)
             response = get_bin_packing_response(request)
-            return get_packing_slip_details(delivery_note, response.get("response"))
+            return get_packing_slip_details(delivery_note, response.get("response"), items_with_unique_boxes)
+        elif items_with_unique_boxes:
+            return get_packing_slip_details(delivery_note, None, items_with_unique_boxes)
         else:
             frappe.throw("No items found for bin packing process")
 
@@ -49,13 +57,11 @@ def get_items_to_pack(dn):
 
     if dn.dn_status == "Draft":
         items = dn.items
-
         for item in dn.items:
             to_dict = get_item_details(item.item_code, item.qty)
             if to_dict: items_to_pack.append(to_dict)
     elif dn.dn_status == "Parially Packed":
         items = json.loads(dn.not_packed_items)
-
         for item_code, qty in items.iteritems():
             to_dict = get_item_details(item_code, qty)
             if to_dict: items_to_pack.append(to_dict)
@@ -85,6 +91,60 @@ def get_item_details(item_code, qty):
                     "vr": 1, "id": item_code,
                     "wg": weight
                 }
+                return to_dict
+            else:
+                frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
+
+def get_item_with_unique_box_details(item_code, qty):
+    """
+        dict to build
+        {
+            "bin_data": {
+                "w": box_w,
+                "h": box_h,
+                "d": box_d,
+                "id": "box_id",
+                "used_space": 100,
+                "weight": box_wt,
+                "used_weight": 100
+            },
+            "items": [{
+                "id": "item_code",
+                "w": 10,
+                "h": 10,
+                "d": 10,
+                "wg": 30,
+                "image_sbs": "",
+            }]
+        }
+    """
+    to_dict = {}
+    item = []
+    bin_data = []
+
+    item_details = frappe.db.get_values("Item",item_code,
+                                        ["item_group", "unique_box_for_packing", "height", "width", "length", "weight_","box"],
+                                        as_dict=True)
+
+    if not item_details:
+        frappe.throw("Invalid Item")
+    else:
+        item_group = item_details[0].get("item_group")
+        if (item_group != "Boxes"):
+            height = item_details[0].get("height") or 0
+            width = item_details[0].get("width") or 0
+            depth = item_details[0].get("length") or 0
+            weight = item_details[0].get("weight_") or 0
+
+            if height and width and depth and weight:
+                # valid item continue with further processing
+                item = [{
+                    "w": width, "h": height,
+                    "d": depth, "q": qty,
+                    "vr": 1, "id": item_code,
+                    "wg": weight,
+                    "image_sbs": ""
+                }]
                 return to_dict
             else:
                 frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
