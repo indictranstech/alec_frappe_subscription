@@ -1,14 +1,15 @@
 import frappe
 from datetime import datetime as dt
 from frappe.utils import formatdate
-from frappe.utils.dateutils import datetime_in_user_format, get_user_date_format
+from frappe.utils.dateutils import datetime_in_user_format, get_user_date_format, dateformats
 from erpnext.stock.doctype.delivery_note.delivery_note import make_sales_invoice
 from frappe_subscription.frappe_subscription.ups_package_tracking import get_package_tracking_status
 
 def track_and_update_packing_slip():
     # track packages and update the status
     # get all the packing_slips name
-    now = dt.strptime(datetime_in_user_format(dt.now()), "%m-%d-%Y %H:%M")
+    date_format = convert_user_date_format()
+    now = dt.strptime(datetime_in_user_format(dt.now()), date_format)
     #scheduler_events should run on 8AM, 12PM, and 5PM
     condition = ((now > now.replace(hour=8, minute=0, second=0, microsecond=0) and
                 now < now.replace(hour=9, minute=0, second=0, microsecond=0)) or
@@ -21,7 +22,7 @@ def track_and_update_packing_slip():
         query = """SELECT DISTINCT ps.delivery_note, ps.name, ps.tracking_id
                 FROM `tabPacking Slip` ps,`tabDelivery Note` dn WHERE ps.docstatus=1
                 AND dn.docstatus=1 AND dn.is_manual_shipping = 0
-                AND ps.tracking_status<>'Delivered' AND ps.name='PS0000244'"""
+                AND ps.tracking_status<>'Delivered'"""
 
         packing_slips = frappe.db.sql(query,as_dict=True)
 
@@ -72,3 +73,8 @@ def create_todo(sales_invoice, delivery_note):
             todo.reference_type = "Sales Invoice"
             todo.reference_name = sales_invoice
             todo.save(ignore_permissions=True)
+
+def convert_user_date_format():
+    user_format = get_user_date_format()
+    datetime_format = dateformats[user_format]
+    return datetime_format + " %H:%M"

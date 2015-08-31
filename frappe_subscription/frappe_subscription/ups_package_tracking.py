@@ -82,7 +82,7 @@ def get_package_tracking_status(tracking_number=None):
                 E.TrackingNumber(tracking_number),
             )
             response = tracking_api.request(tracking_request)
-            return parse_xml_response_to_json(response)
+            return parse_xml_response_to_json(response, tracking_number)
         except PyUPSException, e:
             create_scheduler_log(e[0], "get_package_tracking_status", tracking_number, e)
 
@@ -94,7 +94,7 @@ def get_tracking_service(params):
         True                        # sandbox for testing purpose set as True for production set it to False
     )
 
-def parse_xml_response_to_json(response):
+def parse_xml_response_to_json(response, tracking_number):
     if response.find("Response").find("ResponseStatusCode").text == "1":
         shipment = response.find("Shipment")
         package = shipment.find("Package")
@@ -105,6 +105,16 @@ def parse_xml_response_to_json(response):
             "code": status_type.find("Code"),
             "description": status_type.find("Description")
         }
+    elif response.find("Response").find("ResponseStatusCode").text == "0":
+        error = response.find("Response").find("Error")
+        err_security = error.find("ErrorSeverity").text or ""
+        err_code = error.find("ErrorCode").text or ""
+        desc = error.find("ErrorDescription").text or "No Tracking Information available"
+        if err_security and err_code:
+            msg = "%s-%s : %s"%(err_security, err_code, desc)
+        else:
+            msg = desc
+        create_scheduler_log(msg, "parse_xml_response_to_json", tracking_number)
 
 def create_scheduler_log(msg, method, tracking_id, obj=None):
 	log = frappe.new_doc('Scheduler Log')
