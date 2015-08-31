@@ -10,7 +10,7 @@ from frappe_subscription.frappe_subscription.ups_mapper import ups_packages
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
 
 @frappe.whitelist()
-def get_shipping_rates(delivery_note):
+def get_shipping_rates(delivery_note, add_shipping_overhead):
     # get packages Information from delivery note
     # create the xml request to fetch the ups rates
     try:
@@ -29,10 +29,11 @@ def get_shipping_rates(delivery_note):
 
         dn.save(ignore_permissions= True)
         if shipping_rates.get("03"):
-            add_shipping_charges(dn_name=dn.name, service_code="03")
+            if add_shipping_overhead: add_shipping_charges(dn_name=dn.name, service_code="03")
         else:
             frappe.msgprint("UPS Ground is not available please select other services")
-        return True
+        # return True
+        return shipping_rates
     except PyUPSException, e:
         """ e is PyUPSException obj returns tuple as structured (message, request, response)"""
         frappe.throw(e[0])

@@ -50,8 +50,12 @@ cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
         frappe.throw("Shipping Labels are already Created ...\n");
     }
     else{
-        // get_rates(doc, false, "Fetching UPS Shipping Rate");
-        new frappe.UPSShippingRates();
+        if(doc.ups_rates){
+            new frappe.UPSShippingRates(JSON.parse(doc.ups_rates));
+        }
+        else{
+            get_rates(doc, false, "Fetching UPS Shipping Rate");
+        }
     }
 }
 
@@ -62,12 +66,15 @@ get_rates = function(doc, is_ground, freeze_message){
         method: "frappe_subscription.frappe_subscription.ups_shipping_rates.get_shipping_rates",
         args:{
             delivery_note:doc.name,
+            add_shipping_overhead: is_ground
         },
         callback: function(r){
             if(!r.exc) {
                 cur_frm.reload_doc();
                 if(!is_ground){
-                    new frappe.UPSShippingRates();
+                    // // cur_frm.doc.ups_rates = r.message;
+                    // ups_rates = r.message;
+                    new frappe.UPSShippingRates(r.message);
                 }
             }
         },
@@ -94,17 +101,17 @@ frappe.ui.form.on("Delivery Note Item", "items_remove", function(doc, cdt, cdn) 
 var service = ""
 
 frappe.UPSShippingRates = Class.extend({
-	init: function() {
-		this.make();
+	init: function(rates) {
+		this.make(rates);
 	},
-	make: function() {
+	make: function(rates) {
 		shipping_rates = []
 
 		var me = this;
 		me.pop_up = this.render_pop_up_dialog(cur_frm.doc,me);
 
 		this.append_pop_up_dialog_body(me.pop_up);
-		this.append_shipping_charges(cur_frm.doc);
+		this.append_shipping_charges(rates,cur_frm.doc);
 
 		me.pop_up.show()
 	},
@@ -132,8 +139,8 @@ frappe.UPSShippingRates = Class.extend({
                             <thead><th></th><th><b>Service Code</b></th><th><b>Service</b></th>\
                             <th><b>Charges</b></th></thead><tbody></tbody></table></div>").appendTo($(this.fd.charges.wrapper));
 	},
-    append_shipping_charges: function(doc){
-        var rates = JSON.parse(doc.ups_rates);
+    append_shipping_charges: function(ups_rates,doc){
+        var rates = ups_rates
         service = rates["service_used"];
         service_mapper = {
             "01":"Next Day Air",
