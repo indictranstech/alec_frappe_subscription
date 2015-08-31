@@ -39,11 +39,11 @@ class UPSHelper(object):
                 return ShipmentConfirm.shipper_type(
                     # shipper_address,
                     UPSHelper.get_address(doc, True),
-                    Name= params.get("user_name"),
-                    AttentionName= params.get("attention_name"),
+                    Name= params.get("user_name") or "",
+                    AttentionName= params.get("attention_name") or "",
                     # TaxIdentificationNumber="33065",
-                    PhoneNumber= doc.phone_no,
-                    ShipperNumber= params.get("shipper_number"),
+                    PhoneNumber= doc.phone_no or "",
+                    ShipperNumber= params.get("shipper_number") or "",
                 )
         else:
             frappe.throw("Shipper Address and Shipper Number fields required")
@@ -79,10 +79,11 @@ class UPSHelper(object):
 
             return ShipmentConfirm.ship_to_type(
                 ship_to_address,
-                CompanyName= params.get("customer"),
-                AttentionName= params.get("contact_display"),
+                CompanyName= params.get("customer") or "",
+                AttentionName= params.get("contact_display") or "",
                 # TaxIdentificationNumber="",
-                PhoneNumber= params.get("contact_mobile"),
+                # PhoneNumber= params.get("contact_mobile"),
+                PhoneNumber= doc.phone or ""
             )
 
     @staticmethod
@@ -95,10 +96,10 @@ class UPSHelper(object):
 
             return ShipmentConfirm.ship_from_type(
                 ship_from_address,
-                CompanyName= params.get("attention_name"),
-                AttentionName= params.get("user_name"),
+                CompanyName= params.get("attention_name") or "",
+                AttentionName= params.get("user_name") or "",
                 # TaxIdentificationNumber="",
-                PhoneNumber= doc.phone_no,
+                PhoneNumber= doc.phone_no or "",
             )
 
     @staticmethod
@@ -116,9 +117,9 @@ class UPSHelper(object):
             dimensions = ShipmentConfirm.dimensions_type(
                 Code="IN",
                 Description="Deimensions In Inches",
-                Length= str(item.length),
-                Width= str(item.width),
-                Height= str(item.height),
+                Length= str(item.length) or "0",
+                Width= str(item.width) or "0",
+                Height= str(item.height) or "0",
             )
 
             package_type = ShipmentConfirm.packaging_type(Code=package_type_code)
