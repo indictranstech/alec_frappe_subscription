@@ -2,29 +2,32 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
     if(doc.name.indexOf("New Delivery Note") > -1)
         frappe.throw("Please first save the Delivery Note");
     else{
-        return frappe.call({
-            freeze: true,
-            freeze_message:"Fetching Bin Packing Information ...",
-            method: "frappe_subscription.bin_packing.get_bin_packing_details",
-            args:{
-                delivery_note:doc.name,
-            },
-            callback: function(r){
-                if(!r.exc) {
-                    cur_frm.reload_doc();
-                    if(r.message.status == "Packing Slips Created"){
-                        frappe.msgprint("Packing Slip Created");
+        frappe.confirm("Do you really want to create the Packing Slips<br>Once Packing Slip Created you can not make changes in Delivery Note",
+        function(){
+            return frappe.call({
+                freeze: true,
+                freeze_message:"Fetching Bin Packing Information ...",
+                method: "frappe_subscription.bin_packing.get_bin_packing_details",
+                args:{
+                    delivery_note:doc.name,
+                },
+                callback: function(r){
+                    if(!r.exc) {
+                        cur_frm.reload_doc();
+                        if(r.message.status == "Packing Slips Created"){
+                            frappe.msgprint("Packing Slip Created");
+                        }
+                        else if(r.message.status == "Parially Packed"){
+                            msg = "Following Items are Not Packed : ";
+                            items = JSON.parse(r.message.not_packed_items);
+                            $.each(items, function(key, val){
+                                msg += "\nItem : "+key+", Qty : "+val;
+                            })
+                            frappe.msgprint(msg);
+                        }
                     }
-                    else if(r.message.status == "Parially Packed"){
-                        msg = "Following Items are Not Packed : ";
-                        items = JSON.parse(r.message.not_packed_items);
-                        $.each(items, function(key, val){
-                            msg += "\nItem : "+key+", Qty : "+val;
-                        })
-                        frappe.msgprint(msg);
-                    }
-                }
-            },
+                },
+            });
         });
     }
 }
@@ -84,7 +87,7 @@ get_rates = function(doc, is_ground, freeze_message){
 frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
     dn_status = cur_frm.doc.dn_status;
     if(dn_status != "Draft"){
-        frappe.msgprint("Delivery Note is in Freezed State can not new Item !!");
+        frappe.msgprint("Delivery Note is in Freezed State can not add new Item !!");
         cur_frm.fields_dict["items"].grid.grid_rows[cur_frm.doc.items.length - 1].remove();
     }
 });
@@ -94,6 +97,14 @@ frappe.ui.form.on("Delivery Note Item", "items_remove", function(doc, cdt, cdn) 
     if(dn_status != "Draft"){
         frappe.msgprint("Delivery Note is in Freezed State can not delete item !!");
         cur_frm.reload_doc();
+    }
+});
+
+frappe.ui.form.on("Delivery Note Item", "qty", function(doc, cdt, cdn) {
+    dn_status = cur_frm.doc.dn_status;
+    if(dn_status != "Draft"){
+        frappe.msgprint("Delivery Note is in Freezed State can not change the qty !!");
+        cur_frm.fields_dict["items"].grid.grid_rows[cur_frm.doc.items.length - 1].remove();
     }
 });
 

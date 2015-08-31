@@ -22,7 +22,7 @@ def track_and_update_packing_slip():
         query = """SELECT DISTINCT ps.delivery_note, ps.name, ps.tracking_id
                 FROM `tabPacking Slip` ps,`tabDelivery Note` dn WHERE ps.docstatus=1
                 AND dn.docstatus=1 AND dn.is_manual_shipping = 0
-                AND ps.tracking_status<>'Delivered'"""
+                AND ps.tracking_status<>'Delivered' AND ps.delivery_note=dn.name"""
 
         packing_slips = frappe.db.sql(query,as_dict=True)
 

@@ -84,6 +84,7 @@ def get_package_tracking_status(tracking_number=None):
             response = tracking_api.request(tracking_request)
             return parse_xml_response_to_json(response, tracking_number)
         except PyUPSException, e:
+            print "exception"
             create_scheduler_log(e[0], "get_package_tracking_status", tracking_number, e)
 
 def get_tracking_service(params):

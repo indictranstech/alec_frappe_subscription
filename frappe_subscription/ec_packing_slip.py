@@ -7,62 +7,67 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
     # 2: for each bin create separate packing slip then create the packing deatils
     #    for DN
     if bin_algo_response or unique_box_items:
-        dn = frappe.get_doc("Delivery Note",delivery_note)
+        # check if response contains the not packed items
+        if bin_algo_response and bin_algo_response.get("not_packed_items"):
+            throw_bin_packing_error(bin_algo_response)
+        else:
+            dn = frappe.get_doc("Delivery Note",delivery_note)
 
-        if delivery_note and (bin_algo_response or unique_box_items):
-            # bins_packed = bin_algo_response.get("bins_packed")
-            if bin_algo_response and unique_box_items:
-                if bin_algo_response.get("status"):
-                    bins_packed = bin_algo_response.get("bins_packed")
-                    bins_packed.extend(unique_box_items)
-                else:
+            if delivery_note and (bin_algo_response or unique_box_items):
+                # bins_packed = bin_algo_response.get("bins_packed")
+                if bin_algo_response and unique_box_items:
+                    if bin_algo_response.get("status"):
+                        bins_packed = bin_algo_response.get("bins_packed")
+                        bins_packed.extend(unique_box_items)
+                    else:
+                        throw_bin_packing_error(bin_algo_response)
+                elif bin_algo_response:
+                    if bin_algo_response.get("status"):
+                        bins_packed = bin_algo_response.get("bins_packed")
+                    else:
+                        throw_bin_packing_error(bin_algo_response)
+                elif unique_box_items:
+                    bins_packed = unique_box_items
+
+                if not bins_packed:
                     throw_bin_packing_error(bin_algo_response)
-            elif bin_algo_response:
-                if bin_algo_response.get("status"):
-                    bins_packed = bin_algo_response.get("bins_packed")
+                elif len(bins_packed) > 20:
+                    frappe.throw("Total number of packages allowed per shipment is 20 \
+                                please delete few items and try again")
                 else:
-                    throw_bin_packing_error(bin_algo_response)
-            elif unique_box_items:
-                bins_packed = unique_box_items
+                    # bins_packed = bins_packed[:20]
+                    # bins_to_remove = bins_packed[20:]
+                    # remove_bin_items_from_delivery_note(dn, bins_to_remove)
+                    dn.set("packing_slip_details",[])
+                    case_no = 1
+                    for bin_info in bins_packed:
+                        ch = dn.append('packing_slip_details', {})
 
-            if not bins_packed:
-                throw_bin_packing_error(bin_algo_response)
-            elif len(bins_packed) > 20:
-                frappe.throw("Total number of packages allowed per shipment is 20 \
-                            please delete few items and try again")
-            else:
-                # bins_packed = bins_packed[:20]
-                # bins_to_remove = bins_packed[20:]
-                # remove_bin_items_from_delivery_note(dn, bins_to_remove)
-                dn.set("packing_slip_details",[])
-                case_no = 1
-                for bin_info in bins_packed:
-                    ch = dn.append('packing_slip_details', {})
+                        ch.item_code = bin_info.get("bin_data").get("id")
+                        ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
+                        ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
+                        ch.tracking_id = "NA"
+                        ch.tracking_status = "Not Packed"
+                        case_no += 1
 
-                    ch.item_code = bin_info.get("bin_data").get("id")
-                    ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
-                    ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
-                    ch.tracking_id = "NA"
-                    ch.tracking_status = "Not Packed"
-                    case_no += 1
+                    # freeze the delivery note
+                    if bin_algo_response and bin_algo_response.get("not_packed_items"):
+                        # dn.dn_status = "Parially Packed"
+                        # items = get_not_packed_items(bin_algo_response.get("not_packed_items"))
+                        # dn.not_packed_items = json.dumps(items)
+                        pass
+                    else:
+                        dn.dn_status = "Packing Slips Created"
 
-                # freeze the delivery note
-                if bin_algo_response and bin_algo_response.get("not_packed_items"):
-                    dn.dn_status = "Parially Packed"
-                    items = get_not_packed_items(bin_algo_response.get("not_packed_items"))
-                    dn.not_packed_items = json.dumps(items)
-                else:
-                    dn.dn_status = "Packing Slips Created"
-
-                dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration",
-                                                                "Shipping Configuration",
-                                                                "shipping_overhead")
-                dn.save(ignore_permissions=True)
-                # return dn
-                return {
-                    "status": dn.dn_status,
-                    "not_packed_items":dn.not_packed_items
-                }
+                    dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration",
+                                                                    "Shipping Configuration",
+                                                                    "shipping_overhead")
+                    dn.save(ignore_permissions=True)
+                    # return dn
+                    return {
+                        "status": dn.dn_status,
+                        "not_packed_items":dn.not_packed_items
+                    }
     else:
         throw_bin_packing_error(bin_algo_response)
 

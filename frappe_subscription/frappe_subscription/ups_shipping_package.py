@@ -150,6 +150,7 @@ def update_packing_slip(packing_slip, info):
 
 def create_boxes_stock_entry(delivery_note):
     from datetime import datetime as dt
+    from frappe.utils.dateutils import datetime_in_user_format, get_user_date_format, dateformats
 
     doc = delivery_note
     boxes_used = {}
@@ -160,6 +161,7 @@ def create_boxes_stock_entry(delivery_note):
         })
     se = frappe.new_doc("Stock Entry")
     se.posting_date = dt.now().strftime("%Y-%m-%d")
+    # se.posting_date = dt.strptime(datetime_in_user_format(dt.now()), dateformats[get_user_date_format()])
 
     se.posting_time = dt.now().strftime("%H:%M:%S")
     se.purpose = "Material Issue"

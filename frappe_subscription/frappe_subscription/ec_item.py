@@ -10,7 +10,7 @@ def validate_dimensions(doc, method):
         frappe.throw("Item's Dimension details should be greater than zero")
 
     # check the items Dimensions and box Dimensions
-    if unique_box_for_packing:
+    if doc.unique_box_for_packing:
         box = frappe.get_doc("Item", doc.box)
         box_height = box.height
         box_width = box.width

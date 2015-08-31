@@ -34,7 +34,22 @@ def get_bin_packing_details(delivery_note):
     else:
         items_to_pack = get_items_to_pack(dn)
         to_pack = [item.get("id") for item in items_to_pack]
-        unique_box_items = {item.item_code:item.qty for item in dn.items if item.item_code not in to_pack}
+        # unique_box_items = {item.item_code:item.qty for item in dn.items if item.item_code not in to_pack}
+        # get unique box items to create packing slips
+        """
+            unique_box_items = {
+                item_code:qty
+            }
+        """
+        unique_box_items = {}
+        for item in dn.items:
+            if item.item_code not in to_pack:
+                # check if item requires unique Box
+                if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing"):
+                    unique_box_items.update({
+                        item.item_code:item.qty
+                    })
+
         items_with_unique_boxes = []
         for item,qty in unique_box_items.iteritems():
             item_details = get_item_with_unique_box_details(item, qty)
@@ -59,12 +74,18 @@ def get_items_to_pack(dn):
         items = dn.items
         for item in dn.items:
             to_dict = get_item_details(item.item_code, item.qty)
-            if to_dict: items_to_pack.append(to_dict)
+            if item.qty > 0:
+                if to_dict: items_to_pack.append(to_dict)
+            else:
+                frappe.throw("%s Item Qty must be greater than 0"%(item.item_code))
     elif dn.dn_status == "Parially Packed":
         items = json.loads(dn.not_packed_items)
         for item_code, qty in items.iteritems():
             to_dict = get_item_details(item_code, qty)
-            if to_dict: items_to_pack.append(to_dict)
+            if qty > 0:
+                if to_dict: items_to_pack.append(to_dict)
+            else:
+                frappe.throw("%s Item Qty must be greater than 0"%(item.item_code))
 
     return items_to_pack
 
@@ -118,19 +139,16 @@ def get_item_with_unique_box_details(item_code, qty):
             }]
         }
     """
+    box_item_code = ""
     to_dict = {}
-    item = []
-    bin_data = []
-
     item_details = frappe.db.get_values("Item",item_code,
                                         ["item_group", "unique_box_for_packing", "height", "width", "length", "weight_","box"],
                                         as_dict=True)
-    box_details = frappe.db.get_values("Item",item_details[0].get("box"),
-                                        ["item_group", "height", "width", "length", "weight_"],
-                                        as_dict=True)
+
     if not item_details:
-        frappe.throw("Invalid Item")
+        frappe.throw("%s Item Details Not found"%(item_code))
     else:
+        box_item_code = item_details[0].get("box")
         item_group = item_details[0].get("item_group")
         if (item_group != "Boxes"):
             height = item_details[0].get("height") or 0
@@ -151,8 +169,11 @@ def get_item_with_unique_box_details(item_code, qty):
             else:
                 frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
 
+    box_details = frappe.db.get_values("Item",box_item_code,
+                                        ["item_group", "height", "width", "length", "weight_"],
+                                        as_dict=True)
     if not box_details:
-        frappe.throw("Invalid Box")
+        frappe.throw("%s Box Item Details Not found"%(box_item_code))
     else:
         item_group = box_details[0].get("item_group")
         if (item_group == "Boxes"):
@@ -248,4 +269,6 @@ def get_bin_packing_response(request):
     if response.get("response").get("status") == 1:
         return response
     else:
-        frappe.throw("Error !!")
+        errors = response.get("response").get("errors")
+        msg = "Packing Slip can not be created\n%s"%("\n".join(errors))
+        frappe.throw(msg)

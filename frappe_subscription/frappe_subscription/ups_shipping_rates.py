@@ -149,7 +149,7 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
 
         dn.save(ignore_permissions=True)
     else:
-        get_shipping_rates(dn_name)
+        get_shipping_rates(dn_name, True)
 
     return "True"
 
