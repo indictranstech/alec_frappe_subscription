@@ -145,7 +145,7 @@ def get_item_with_unique_box_details(item_code, qty):
                         "w": width, "h": height,
                         "d": depth, "id": item_code,
                         "wg": weight,
-                        "image_sbs": ""
+                        "image_sbs": "iVBORw0KGgoAAAANSUhEUgAAAGYAAABlBAMAAABNZYv/AAAAG1BMVEX///87Ozvm5uaxDg7WT0/XZ2eRhYVjXV3IyMiQHr0rAAAACXBIWXMAAA7EAAAOxAGVKw4bAAABAUlEQVRYhe3YOxaDMAxEUVf0aVjfVLAD2D5/sOXC89ocu795dJGUUnjD2npTJGlukWXhmbky7cwajZGpjJGJxslE42SCsTLBWJnSeJnSeJnCmJnCmJncuJncuJnM2JnM2JnP+JnP+JnXgMxrQOYxJPMYkrkNytwGZS7DMpdhmdPAzGlg5jA0cxia2c0wtV780YV/2m7GbrrppptuuvlbI272v21sxM0xhVAjbs6hChpxc82IzIibe+RFRtw8Ezwx4uZdSIARN99+5Rtxk62LthE3+fbrGnFTLPOmETflbcIz4iacWiwjbuLlyDHipjqEGSZmDFPf9cbmblZl0q/5KrIBGDsbH0e414QAAAAASUVORK5CYII="
                     }]
                 })
             else:
@@ -155,7 +155,6 @@ def get_item_with_unique_box_details(item_code, qty):
         frappe.throw("Invalid Box")
     else:
         item_group = box_details[0].get("item_group")
-        frappe.errprint(item_group)
         if (item_group == "Boxes"):
             height = box_details[0].get("height") or 0
             width = box_details[0].get("width") or 0
@@ -168,7 +167,7 @@ def get_item_with_unique_box_details(item_code, qty):
                     "bin_data":{
                         "w": width, "h": height,
                         "d": depth, "q": qty,
-                        "vr": 1, "id": item_code,
+                        "id": item_details[0].get("box"),
                         "used_space": 100, "weight": weight,
                         "used_weight": 100
                     }

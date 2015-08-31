@@ -6,11 +6,24 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
     # 1: get packing bin data
     # 2: for each bin create separate packing slip then create the packing deatils
     #    for DN
-    if bin_algo_response.get("status") or unique_box_items:
+    if bin_algo_response or unique_box_items:
         dn = frappe.get_doc("Delivery Note",delivery_note)
 
-        if delivery_note and bin_algo_response:
-            bins_packed = bin_algo_response.get("bins_packed")
+        if delivery_note and (bin_algo_response or unique_box_items):
+            # bins_packed = bin_algo_response.get("bins_packed")
+            if bin_algo_response and unique_box_items:
+                if bin_algo_response.get("status"):
+                    bins_packed = bin_algo_response.get("bins_packed")
+                    bins_packed.extend(unique_box_items)
+                else:
+                    throw_bin_packing_error(bin_algo_response)
+            elif bin_algo_response:
+                if bin_algo_response.get("status"):
+                    bins_packed = bin_algo_response.get("bins_packed")
+                else:
+                    throw_bin_packing_error(bin_algo_response)
+            elif unique_box_items:
+                bins_packed = unique_box_items
 
             if not bins_packed:
                 throw_bin_packing_error(bin_algo_response)
@@ -34,7 +47,7 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
                     case_no += 1
 
                 # freeze the delivery note
-                if bin_algo_response.get("not_packed_items"):
+                if bin_algo_response and bin_algo_response.get("not_packed_items"):
                     dn.dn_status = "Parially Packed"
                     items = get_not_packed_items(bin_algo_response.get("not_packed_items"))
                     dn.not_packed_items = json.dumps(items)
@@ -174,9 +187,10 @@ def on_packing_slip_update(doc, method):
 
 def throw_bin_packing_error(bin_algo_response):
     msg = "Error occured while creating packing slips\n"
-    for error in bin_algo_response.get("errors"):
-        if error.get("message"):
-            msg += "%s\n"%(error.get("message"))
+    if bin_algo_response:
+        for error in bin_algo_response.get("errors"):
+            if error.get("message"):
+                msg += "%s\n"%(error.get("message"))
     frappe.throw(msg)
 
 def get_not_packed_items(not_packed_items):
