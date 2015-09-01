@@ -85,7 +85,7 @@ def parse_xml_response_to_json(response):
         service = rated_shipment.find("Service")
         total_charges = rated_shipment.find("TotalCharges")
 
-        if service and total_charges:
+        if (service is not None) and (total_charges is not None):
             service_code = service.find("Code")
             service_charges = total_charges.find("MonetaryValue")
 

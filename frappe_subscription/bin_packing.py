@@ -30,11 +30,10 @@ def get_bin_packing_details(delivery_note):
     dn = frappe.get_doc("Delivery Note", delivery_note)
 
     if dn.dn_status not in ["Draft","Partialy Packed"]:
-        frappe.throw("Delivery Note is in Freezed state")
+        frappe.throw("Packing Slips are already created please reload the document")
     else:
         items_to_pack = get_items_to_pack(dn)
         to_pack = [item.get("id") for item in items_to_pack]
-        # unique_box_items = {item.item_code:item.qty for item in dn.items if item.item_code not in to_pack}
         # get unique box items to create packing slips
         """
             unique_box_items = {
@@ -42,21 +41,6 @@ def get_bin_packing_details(delivery_note):
             }
         """
         items_with_unique_boxes = get_unique_box_items_to_pack(dn, to_pack)
-        # frappe.errprint(["test",items_with_unique_boxes])
-        # s
-        # unique_box_items = {}
-        # for item in dn.items:
-        #     if item.item_code not in to_pack:
-        #         # check if item requires unique Box
-        #         if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing"):
-        #             unique_box_items.update({
-        #                 item.item_code:item.qty
-        #             })
-        #
-        # items_with_unique_boxes = []
-        # for item,qty in unique_box_items.iteritems():
-        #     item_details = get_item_with_unique_box_details(item, qty)
-        #     [items_with_unique_boxes.append(item_details) for i in xrange(int(qty))]
 
         if items_to_pack:
             # prepare 3d bin packing request in json format

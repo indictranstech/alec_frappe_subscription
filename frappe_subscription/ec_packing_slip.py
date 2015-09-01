@@ -56,6 +56,7 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
                         pass
                     else:
                         dn.dn_status = "Packing Slips Created"
+                        dn.not_packed_items = json.dumps({})
 
                     dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration",
                                                                     "Shipping Configuration",
@@ -139,7 +140,7 @@ def on_packing_slip_cancel(doc, method):
     if dn.docstatus == 1:
         frappe.throw("Packing Slip is Linked with Submitted Delivery Note : %s"%dn.name)
     elif dn.docstatus == 0:
-        if dn.dn_status not in ["Draft","Packing Slips Created"]:
+        if dn.dn_status not in ["Draft","Packing Slips Created","Partialy Packed"]:
             frappe.throw("Delivery Note is in Freezed state can not cancel the Packing Slip")
         else:
             to_remove = []
