@@ -44,11 +44,10 @@ def on_delivery_note_submit(doc, method):
         frappe.throw("Packing Slip are not created for all items. Please crate packing slips first")
 
     if  doc.is_manual_shipping == 0:
-        # get_shipping_rates(doc.name) if doc.dn_status == "Packing Slips Created" else get_shipping_labels(doc)
+        #TODO remove if condition
         condition = is_shipping_overhead_available(doc)
 
         if (doc.dn_status == "Packing Slips Created") or (not condition):
-            # get_shipping_rates(doc.name)
             frappe.throw("First Add the Shipping Overhead")
 
         get_shipping_labels(doc)
