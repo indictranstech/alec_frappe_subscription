@@ -37,7 +37,7 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
                 else:
                     if dn.dn_status == "Draft": dn.set("packing_slip_details",[])
                     # case_no = (len(dn.packing_slip_details) + 1) or 1
-                    case_no = 1
+                    case_no = get_recommended_case_no(dn.name) or 1
                     for bin_info in bins_packed:
                         ch = dn.append('packing_slip_details', {})
 
