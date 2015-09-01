@@ -80,7 +80,7 @@ class UPSHelper(object):
             return ShipmentConfirm.ship_to_type(
                 ship_to_address,
                 CompanyName= params.get("customer") or "",
-                AttentionName= params.get("contact_display") or "",
+                AttentionName= params.get("contact_display") or doc.customer_name or "",
                 # TaxIdentificationNumber="",
                 # PhoneNumber= params.get("contact_mobile"),
                 PhoneNumber= doc.phone or ""
