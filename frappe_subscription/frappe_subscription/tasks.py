@@ -17,7 +17,7 @@ def track_and_update_packing_slip():
                 now < now.replace(hour=13, minute=0, second=0, microsecond=0)) or
                 (now > now.replace(hour=17, minute=0, second=0, microsecond=0) and
                 now < now.replace(hour=18, minute=0, second=0, microsecond=0)))
-    # condition = True
+    condition = True
     if condition:
         query = """SELECT DISTINCT ps.delivery_note, ps.name, ps.tracking_id
                 FROM `tabPacking Slip` ps,`tabDelivery Note` dn WHERE ps.docstatus=1
@@ -28,7 +28,8 @@ def track_and_update_packing_slip():
 
         for ps in packing_slips:
             status = get_package_tracking_status(ps.get("tracking_id"))
-            # status = get_package_tracking_status("990728071")
+            # status = get_package_tracking_status("990728071")                 # In Transit
+            # status = get_package_tracking_status("1Z12345E0291980793")        # Delivered
 
             if status:
                 code = status.get("code")

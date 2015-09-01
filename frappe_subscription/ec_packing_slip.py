@@ -35,10 +35,8 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
                     frappe.throw("Total number of packages allowed per shipment is 20 \
                                 please delete few items and try again")
                 else:
-                    # bins_packed = bins_packed[:20]
-                    # bins_to_remove = bins_packed[20:]
-                    # remove_bin_items_from_delivery_note(dn, bins_to_remove)
-                    dn.set("packing_slip_details",[])
+                    if dn.dn_status == "Draft": dn.set("packing_slip_details",[])
+                    # case_no = (len(dn.packing_slip_details) + 1) or 1
                     case_no = 1
                     for bin_info in bins_packed:
                         ch = dn.append('packing_slip_details', {})
@@ -141,20 +139,30 @@ def on_packing_slip_cancel(doc, method):
     if dn.docstatus == 1:
         frappe.throw("Packing Slip is Linked with Submitted Delivery Note : %s"%dn.name)
     elif dn.docstatus == 0:
-        # if dn.dn_status not in "Draft":
-        #     frappe.throw("Delivery Note is in Freezed state can not cancel the Packing Slip")
-        # else:
-        to_remove = []
-        for ps in dn.packing_slip_details:
-            if ps.packing_slip == doc.name:
-                to_remove.append(ps)
-        if to_remove:
-            [dn.remove(ch) for ch in to_remove]
-            if not dn.packing_slip_details:
-                dn.dn_status = "Draft"
-            dn.save(ignore_permissions = True)
+        if dn.dn_status not in ["Draft","Packing Slips Created"]:
+            frappe.throw("Delivery Note is in Freezed state can not cancel the Packing Slip")
+        else:
+            to_remove = []
+            for ps in dn.packing_slip_details:
+                if ps.packing_slip == doc.name:
+                    to_remove.append(ps)
+            if to_remove:
+                [dn.remove(ch) for ch in to_remove]
+                if not dn.packing_slip_details:
+                    dn.dn_status = "Draft"
+                    dn.not_packed_items = json.dumps({})
+                else:
+                    dn.dn_status = "Partialy Packed"
+                    not_packed_items = json.loads(dn.not_packed_items)
+                    for item in doc.bin_items:
+                        qty = not_packed_items.get(item.item_code) + 1 if not_packed_items.get(item.item_code) else 1
+                        not_packed_items.update({
+                            item.item_code: qty
+                        })
+                    dn.not_packed_items = json.dumps(not_packed_items)
+                dn.save(ignore_permissions = True)
 
-            frappe.delete_doc("Packing Slip",doc.name)
+                frappe.delete_doc("Packing Slip",doc.name)
 
 def on_packing_slip_update(doc, method):
     """ update the tracking status on delivery note """
@@ -198,13 +206,13 @@ def throw_bin_packing_error(bin_algo_response):
                 msg += "%s\n"%(error.get("message"))
     frappe.throw(msg)
 
-def get_not_packed_items(not_packed_items):
-    items = {}
-    for item in not_packed_items:
-        items.update({
-            item.get("id"): item.get("q")
-        })
-    return items
+# def get_not_packed_items(not_packed_items):
+#     items = {}
+#     for item in not_packed_items:
+#         items.update({
+#             item.get("id"): item.get("q")
+#         })
+#     return items
 
 def prepare_images_for_print_format(items):
     # ch_bin_item.image_sbs = "<img src='data:image/png;base64,%s'/>"%(item.get("image_sbs"))

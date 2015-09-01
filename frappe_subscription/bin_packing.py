@@ -29,7 +29,7 @@ def get_bin_packing_details(delivery_note):
     # check item group of item
     dn = frappe.get_doc("Delivery Note", delivery_note)
 
-    if dn.dn_status not in ["Draft","Parially Packed"]:
+    if dn.dn_status not in ["Draft","Partialy Packed"]:
         frappe.throw("Delivery Note is in Freezed state")
     else:
         items_to_pack = get_items_to_pack(dn)
@@ -41,19 +41,22 @@ def get_bin_packing_details(delivery_note):
                 item_code:qty
             }
         """
-        unique_box_items = {}
-        for item in dn.items:
-            if item.item_code not in to_pack:
-                # check if item requires unique Box
-                if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing"):
-                    unique_box_items.update({
-                        item.item_code:item.qty
-                    })
-
-        items_with_unique_boxes = []
-        for item,qty in unique_box_items.iteritems():
-            item_details = get_item_with_unique_box_details(item, qty)
-            [items_with_unique_boxes.append(item_details) for i in xrange(int(qty))]
+        items_with_unique_boxes = get_unique_box_items_to_pack(dn, to_pack)
+        # frappe.errprint(["test",items_with_unique_boxes])
+        # s
+        # unique_box_items = {}
+        # for item in dn.items:
+        #     if item.item_code not in to_pack:
+        #         # check if item requires unique Box
+        #         if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing"):
+        #             unique_box_items.update({
+        #                 item.item_code:item.qty
+        #             })
+        #
+        # items_with_unique_boxes = []
+        # for item,qty in unique_box_items.iteritems():
+        #     item_details = get_item_with_unique_box_details(item, qty)
+        #     [items_with_unique_boxes.append(item_details) for i in xrange(int(qty))]
 
         if items_to_pack:
             # prepare 3d bin packing request in json format
@@ -78,7 +81,7 @@ def get_items_to_pack(dn):
                 if to_dict: items_to_pack.append(to_dict)
             else:
                 frappe.throw("%s Item Qty must be greater than 0"%(item.item_code))
-    elif dn.dn_status == "Parially Packed":
+    elif dn.dn_status == "Partialy Packed":
         items = json.loads(dn.not_packed_items)
         for item_code, qty in items.iteritems():
             to_dict = get_item_details(item_code, qty)
@@ -115,6 +118,24 @@ def get_item_details(item_code, qty):
                 return to_dict
             else:
                 frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
+
+def get_unique_box_items_to_pack(dn, to_pack):
+    # unique_box_items = {}
+    items_with_unique_boxes = []
+    if dn.dn_status == "Draft":
+        for item in dn.items:
+            if item.item_code not in to_pack:
+                # check if item requires unique Box
+                if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing"):
+                    item_details = get_item_with_unique_box_details(item.item_code, item.qty)
+                    [items_with_unique_boxes.append(item_details) for i in xrange(int(item.qty))]
+    elif dn.dn_status == "Partialy Packed":
+        items = json.loads(dn.not_packed_items)
+        for item_code, qty in items.iteritems():
+            if frappe.db.get_value("Item", item_code,"unique_box_for_packing"):
+                item_details = get_item_with_unique_box_details(item_code, qty)
+                [items_with_unique_boxes.append(item_details) for i in xrange(int(qty))]
+    return items_with_unique_boxes
 
 def get_item_with_unique_box_details(item_code, qty):
     """

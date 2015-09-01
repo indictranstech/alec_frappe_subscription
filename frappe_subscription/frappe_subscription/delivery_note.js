@@ -17,14 +17,14 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
                         if(r.message.status == "Packing Slips Created"){
                             frappe.msgprint("Packing Slip Created");
                         }
-                        else if(r.message.status == "Parially Packed"){
-                            msg = "Following Items are Not Packed : ";
-                            items = JSON.parse(r.message.not_packed_items);
-                            $.each(items, function(key, val){
-                                msg += "\nItem : "+key+", Qty : "+val;
-                            })
-                            frappe.msgprint(msg);
-                        }
+                        // else if(r.message.status == "Parially Packed"){
+                        //     msg = "Following Items are Not Packed : ";
+                        //     items = JSON.parse(r.message.not_packed_items);
+                        //     $.each(items, function(key, val){
+                        //         msg += "\nItem : "+key+", Qty : "+val;
+                        //     })
+                        //     frappe.msgprint(msg);
+                        // }
                     }
                 },
             });
