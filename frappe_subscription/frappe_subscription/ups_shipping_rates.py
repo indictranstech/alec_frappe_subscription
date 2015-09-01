@@ -10,7 +10,7 @@ from frappe_subscription.frappe_subscription.ups_mapper import ups_packages
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
 
 @frappe.whitelist()
-def get_shipping_rates(delivery_note, add_shipping_overhead):
+def get_shipping_rates(delivery_note, add_shipping_overhead=False):
     # get packages Information from delivery note
     # create the xml request to fetch the ups rates
     try:
