@@ -27,7 +27,7 @@ def on_delivery_note_cancel(doc, method):
             ch_to_remove.append(ps_details)
 
         [doc.remove(ch) for ch in ch_to_remove]
-        remove_shipping_overhead()
+        remove_shipping_overhead(doc)
         [frappe.delete_doc("Packing Slip Details",ch.name) for ch in ch_to_remove]
         [frappe.delete_doc("Packing Slip", ps_name) for ps_name in ps_to_cancel]
 
@@ -100,7 +100,7 @@ def validate_address(doc, method):
     if not doc.shipping_address_name:
         frappe.throw("Shipping address required")
     # if dn_status is shipping rates fetched then remove shipping overhead and set ups_rates = {}
-    if doc.dn_status == "UPS Rates Fetched":
-        remove_shipping_overhead(doc)
-        doc.dn_status = "Packing Slips Created"
-        doc.save(ignore_permissions=True)
+    # if doc.dn_status == "UPS Rates Fetched":
+    #     remove_shipping_overhead(doc)
+    #     doc.dn_status = "Packing Slips Created"
+    #     doc.save(ignore_permissions=True)
