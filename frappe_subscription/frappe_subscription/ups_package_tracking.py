@@ -84,7 +84,6 @@ def get_package_tracking_status(tracking_number=None):
             response = tracking_api.request(tracking_request)
             return parse_xml_response_to_json(response, tracking_number)
         except PyUPSException, e:
-            print "exception"
             create_scheduler_log(e[0], "get_package_tracking_status", tracking_number, e)
 
 def get_tracking_service(params):
@@ -96,26 +95,39 @@ def get_tracking_service(params):
     )
 
 def parse_xml_response_to_json(response, tracking_number):
-    if response.find("Response").find("ResponseStatusCode").text == "1":
-        shipment = response.find("Shipment")
-        package = shipment.find("Package")
-        activity = package.find("Activity")
-        status_type = activity.find("Status").find("StatusType")
-        #TODO return dict containing codes and discription
-        return {
-            "code": status_type.find("Code"),
-            "description": status_type.find("Description")
-        }
-    elif response.find("Response").find("ResponseStatusCode").text == "0":
-        error = response.find("Response").find("Error")
-        err_security = error.find("ErrorSeverity").text or ""
-        err_code = error.find("ErrorCode").text or ""
-        desc = error.find("ErrorDescription").text or "No Tracking Information available"
-        if err_security and err_code:
-            msg = "%s-%s : %s"%(err_security, err_code, desc)
-        else:
-            msg = desc
-        create_scheduler_log(msg, "parse_xml_response_to_json", tracking_number)
+    try:
+        if response.find("Response").find("ResponseStatusCode").text == "1":
+            shipment = response.find("Shipment")
+            if shipment is not None:
+                package = shipment.find("Package")
+                if package is not None:
+                    activity = package.find("Activity")
+                    status_type = activity.find("Status").find("StatusType")
+                    code = status_type.find("Code")
+                    description = status_type.find("Description")
+                else:
+                    current_status = shipment.find("CurrentStatus")
+                    code = current_status.find("Code").text
+                    description = current_status.find("Description").text
+                    if "In Transit" in description:
+                        code = "I"
+                #return dict containing codes and discription
+                return {
+                    "code": code,
+                    "description": description
+                }
+        elif response.find("Response").find("ResponseStatusCode").text == "0":
+            error = response.find("Response").find("Error")
+            err_security = error.find("ErrorSeverity").text or ""
+            err_code = error.find("ErrorCode").text or ""
+            desc = error.find("ErrorDescription").text or "No Tracking Information available"
+            if err_security and err_code:
+                msg = "%s-%s : %s"%(err_security, err_code, desc)
+            else:
+                msg = desc
+            create_scheduler_log(msg, "parse_xml_response_to_json", tracking_number)
+    except Exception, e:
+        create_scheduler_log("Error while parsing XML response","parse_xml_response_to_json", tracking_number, e)
 
 def create_scheduler_log(msg, method, tracking_id, obj=None):
 	log = frappe.new_doc('Scheduler Log')
