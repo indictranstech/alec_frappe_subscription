@@ -1,4 +1,5 @@
 import frappe
+import json
 from frappe_subscription.frappe_subscription.ups_shipping_rates import get_shipping_rates
 from frappe_subscription.frappe_subscription.ups_shipping_package import get_shipping_labels
 
@@ -26,6 +27,7 @@ def on_delivery_note_cancel(doc, method):
             ch_to_remove.append(ps_details)
 
         [doc.remove(ch) for ch in ch_to_remove]
+        remove_shipping_overhead()
         [frappe.delete_doc("Packing Slip Details",ch.name) for ch in ch_to_remove]
         [frappe.delete_doc("Packing Slip", ps_name) for ps_name in ps_to_cancel]
 
@@ -38,8 +40,8 @@ def on_delivery_note_submit(doc, method):
 
     if doc.dn_status == "Draft":
         frappe.throw("Bin Packing Information Not Found ...")
-    elif doc.dn_status == "Parially Packed":
-        frappe.throw("Delivery Note Items are paritally Packed")
+    elif doc.dn_status == "Partialy Packed":
+        frappe.throw("Packing Slip are not created for all items. Please crate packing slips first")
 
     if  doc.is_manual_shipping == 0:
         # get_shipping_rates(doc.name) if doc.dn_status == "Packing Slips Created" else get_shipping_labels(doc)
@@ -77,6 +79,28 @@ def is_shipping_overhead_available(doc):
                 break
         return condition
 
+def remove_shipping_overhead(doc):
+    to_remove = []
+
+    if doc.taxes:
+        params = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
+                            ["default_account","cost_center"], as_dict=True)[0]
+        for tax in doc.taxes:
+            if tax.charge_type == "Actual" and tax.account_head == params.get("default_account") and tax.cost_center == params.get("cost_center"):
+                to_remove.append(tax)
+        [doc.remove(tx) for tx in to_remove]
+        doc.carrier_shipping_rate = 0.0
+        doc.total_shipping_rate = 0.0
+        doc.total_taxes_and_charges = 0.0
+        doc.grand_total = 0.0
+        doc.in_words = ""
+        doc.ups_rates = json.dumps({})
+
 def validate_address(doc, method):
     if not doc.shipping_address_name:
         frappe.throw("Shipping address required")
+    # if dn_status is shipping rates fetched then remove shipping overhead and set ups_rates = {}
+    if doc.dn_status == "UPS Rates Fetched":
+        remove_shipping_overhead(doc)
+        doc.dn_status = "Packing Slips Created"
+        doc.save(ignore_permissions=True)
