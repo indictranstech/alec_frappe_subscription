@@ -32,9 +32,11 @@ def get_shipping_rates(delivery_note, add_shipping_overhead=False):
         dn.save(ignore_permissions= True)
         if shipping_rates.get("03"):
             if add_shipping_overhead: add_shipping_charges(dn_name=dn.name, service_code="03")
+            return True
         else:
             frappe.msgprint("UPS Ground rates are not available. Please select other services")
-        return shipping_rates
+            return shipping_rates
+        # return shipping_rates
     except PyUPSException, e:
         """ e is PyUPSException obj returns tuple as structured (message, request, response)"""
         frappe.throw(e[0])
@@ -149,10 +151,16 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
         dn.total_shipping_rate = total_charge
 
         dn.save(ignore_permissions=True)
+        return "True"
     else:
-        get_shipping_rates(dn_name, True)
+        rates = get_shipping_rates(dn_name, True)
+        frappe.errprint(service_code)
+        if service_code and rates.get(service_code) == "03":
+            return "True"
+        else:
+            return "False"
 
-    return "True"
+    # return "True"
 
 def update_taxes_and_charges_row(row, shipping_charge, defaults):
     row.charge_type = "Actual"

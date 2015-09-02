@@ -18,6 +18,6 @@ def validate_dimensions(doc, method):
         box_weight = box.weight_
 
         if (box_height < height) and (box_width < width) and (box_depth < depth):
-            frappe.throw("Given Item can not be fit in selected box")
+            frappe.throw("Item : %s can not be fit in selected Box"%doc.item_code)
         elif box_weight < weight:
             frappe.throw("Item weight is greater than Box weight Limit")

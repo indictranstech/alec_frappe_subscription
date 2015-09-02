@@ -214,14 +214,16 @@ frappe.UPSShippingRates = Class.extend({
 cur_frm.cscript.is_manual_shipping = function(doc,cdt,cdn){
     if(doc.is_manual_shipping){
         service = "Manual";
-        doc.total_shipping_rate = 0.0
-        cur_frm.refresh_field("total_shipping_rate")
+        doc.carrier_shipping_rate = 0.0;
+        doc.total_shipping_rate = 0.0;
+        cur_frm.refresh_field("carrier_shipping_rate")
+        cur_frm.refresh_field("total_shipping_rate");
         set_child_fields_to_readonly(0);
     }
     else{
         service = "03";
         set_child_fields_to_readonly(1);
-        // set_up_taxes_and_charges(service, 0);
+        set_up_taxes_and_charges(service, 0);
     }
 }
 
@@ -253,7 +255,8 @@ set_up_taxes_and_charges = function(code, rate){
         },
         callback: function(r){
             if(!r.exc) {
-                msgprint("Shipping Overhead Set in Taxes and Charges");
+                if(r.message == "True")
+                    msgprint("Shipping Overhead Set in Taxes and Charges");
                 cur_frm.reload_doc();
             }
             else{
