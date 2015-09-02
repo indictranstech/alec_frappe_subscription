@@ -32,7 +32,8 @@ def get_shipping_rates(delivery_note, add_shipping_overhead=False):
         dn.save(ignore_permissions= True)
         if shipping_rates.get("03"):
             if add_shipping_overhead: add_shipping_charges(dn_name=dn.name, service_code="03")
-            return True
+            # return True
+            return shipping_rates
         else:
             frappe.msgprint("UPS Ground rates are not available. Please select other services")
             return shipping_rates

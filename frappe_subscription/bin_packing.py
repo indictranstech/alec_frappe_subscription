@@ -27,32 +27,35 @@ params = {
 @frappe.whitelist()
 def get_bin_packing_details(delivery_note):
     # check item group of item
-    dn = frappe.get_doc("Delivery Note", delivery_note)
+    try:
+        dn = frappe.get_doc("Delivery Note", delivery_note)
 
-    if dn.dn_status not in ["Draft","Partialy Packed"]:
-        frappe.throw("Packing Slips are already created please reload the document")
-    else:
-        items_to_pack = get_items_to_pack(dn)
-        to_pack = [item.get("id") for item in items_to_pack]
-        # get unique box items to create packing slips
-        """
-            unique_box_items = {
-                item_code:qty
-            }
-        """
-        items_with_unique_boxes = get_unique_box_items_to_pack(dn, to_pack)
-
-        if items_to_pack:
-            # prepare 3d bin packing request in json format
-            bins = get_bin_details()
-            credentials = get_bin_packing_credentials()
-            request = get_bin_packing_request(bins,items_to_pack,credentials,params)
-            response = get_bin_packing_response(request)
-            return get_packing_slip_details(delivery_note, response.get("response"), items_with_unique_boxes)
-        elif items_with_unique_boxes:
-            return get_packing_slip_details(delivery_note, None, items_with_unique_boxes)
+        if dn.dn_status not in ["Draft","Partialy Packed"]:
+            frappe.throw("Packing Slips are already created please reload the document")
         else:
-            frappe.throw("No items found for bin packing process")
+            items_to_pack = get_items_to_pack(dn)
+            to_pack = [item.get("id") for item in items_to_pack]
+            # get unique box items to create packing slips
+            """
+                unique_box_items = {
+                    item_code:qty
+                }
+            """
+            items_with_unique_boxes = get_unique_box_items_to_pack(dn, to_pack)
+
+            if items_to_pack:
+                # prepare 3d bin packing request in json format
+                bins = get_bin_details()
+                credentials = get_bin_packing_credentials()
+                request = get_bin_packing_request(bins,items_to_pack,credentials,params)
+                response = get_bin_packing_response(request)
+                return get_packing_slip_details(delivery_note, response.get("response"), items_with_unique_boxes)
+            elif items_with_unique_boxes:
+                return get_packing_slip_details(delivery_note, None, items_with_unique_boxes)
+            else:
+                frappe.throw("No items found for bin packing process")
+    except Exception, e:
+        frappe.throw(e)
 
 def get_items_to_pack(dn):
     items_to_pack = []

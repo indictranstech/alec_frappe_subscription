@@ -21,3 +21,5 @@ def validate_dimensions(doc, method):
             frappe.throw("Item : %s can not be fit in selected Box"%doc.item_code)
         elif box_weight < weight:
             frappe.throw("Item weight is greater than Box weight Limit")
+    else:
+        doc.box = ""
