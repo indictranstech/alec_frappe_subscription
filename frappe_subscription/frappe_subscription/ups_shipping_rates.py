@@ -33,7 +33,7 @@ def get_shipping_rates(delivery_note, add_shipping_overhead=False):
         if shipping_rates.get("03"):
             if add_shipping_overhead: add_shipping_charges(dn_name=dn.name, service_code="03")
         else:
-            frappe.msgprint("UPS Ground is not available please select other services")
+            frappe.msgprint("UPS Ground rates are not available. Please select other services")
         return shipping_rates
     except PyUPSException, e:
         """ e is PyUPSException obj returns tuple as structured (message, request, response)"""

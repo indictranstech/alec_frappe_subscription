@@ -236,7 +236,7 @@ set_child_fields_to_readonly = function(val){
 }
 
 set_up_taxes_and_charges = function(code, rate){
-    if(doc.name.indexOf("New Delivery Note") > -1)
+    if(cur_frm.doc.name.indexOf("New Delivery Note") > -1)
         frappe.throw("Please first save the Delivery Note");
 
     return frappe.call({
