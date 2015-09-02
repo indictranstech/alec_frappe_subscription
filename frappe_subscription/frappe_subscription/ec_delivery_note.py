@@ -41,7 +41,7 @@ def on_delivery_note_submit(doc, method):
     if doc.dn_status == "Draft":
         frappe.throw("Bin Packing Information Not Found ...")
     elif doc.dn_status == "Partialy Packed":
-        frappe.throw("Packing Slip are not created for all items. Please crate packing slips first")
+        frappe.throw("Packing Slip are not created for all items. Please create packing slips first")
 
     if  doc.is_manual_shipping == 0:
         #TODO remove if condition
