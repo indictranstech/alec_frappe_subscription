@@ -200,7 +200,8 @@ def on_packing_slip_update(doc, method):
 #     [dn_doc.remove(ch) for ch in to_remove]
 
 def throw_bin_packing_error(bin_algo_response):
-    msg = "Error occured while creating packing slips\n"
+    # msg = "Error occured while creating packing slips\n"
+    msg = ""
     if bin_algo_response:
         for error in bin_algo_response.get("errors"):
             if error.get("message"):

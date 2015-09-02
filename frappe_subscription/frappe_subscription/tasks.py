@@ -17,7 +17,7 @@ def track_and_update_packing_slip():
                 now < now.replace(hour=13, minute=0, second=0, microsecond=0)) or
                 (now > now.replace(hour=17, minute=0, second=0, microsecond=0) and
                 now < now.replace(hour=18, minute=0, second=0, microsecond=0)))
-    condition = True
+
     if condition:
         query = """SELECT DISTINCT ps.delivery_note, ps.name, ps.tracking_id
                 FROM `tabPacking Slip` ps,`tabDelivery Note` dn WHERE ps.docstatus=1
@@ -34,12 +34,14 @@ def track_and_update_packing_slip():
             if status:
                 code = status.get("code")
                 # update status
+                ps_name = ps.get("name")
+                description = status.get("description").capitalize()
                 query = """UPDATE `tabPacking Slip` SET tracking_status='%s'
-                        WHERE name='%s'"""%(status.get("description"),ps.get("name"))
+                        WHERE name='%s'"""%(description, ps_name)
                 frappe.db.sql(query)
                 query = """UPDATE `tabPacking Slip Details` SET tracking_status='%s'
-                        WHERE parent='%s' AND packing_slip='%s'"""%(status.get("description"),
-                        ps.get("delivery_note"),ps.get("name"))
+                        WHERE parent='%s' AND packing_slip='%s'"""%(description,
+                        ps.get("delivery_note"),ps_name)
                 frappe.db.sql(query)
 
                 if code == "I":
