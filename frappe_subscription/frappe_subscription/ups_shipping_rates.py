@@ -154,7 +154,6 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
         return "True"
     else:
         rates = get_shipping_rates(dn_name, True)
-        frappe.errprint(service_code)
         if service_code and rates.get(service_code) == "03":
             return "True"
         else:
