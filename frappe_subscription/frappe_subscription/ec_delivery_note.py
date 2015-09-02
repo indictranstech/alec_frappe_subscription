@@ -97,7 +97,7 @@ def remove_shipping_overhead(doc):
 
 def validate_address(doc, method):
     if not doc.shipping_address_name:
-        frappe.throw("Shipping address required")
+        frappe.throw("Shipping Address is required")
     # if dn_status is shipping rates fetched then remove shipping overhead and set ups_rates = {}
     # if doc.dn_status == "UPS Rates Fetched":
     #     remove_shipping_overhead(doc)
