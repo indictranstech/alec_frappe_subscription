@@ -226,7 +226,10 @@ cur_frm.cscript.is_manual_shipping = function(doc,cdt,cdn){
 }
 
 cur_frm.cscript.carrier_shipping_rate = function(doc,cdt,cdn){
-    set_up_taxes_and_charges(service, doc.carrier_shipping_rate)
+    if(doc.carrier_shipping_rate <= 0)
+        frappe.msgprint("Invalid Shipping Rate")
+    else
+        set_up_taxes_and_charges(service, doc.carrier_shipping_rate)
 }
 
 set_child_fields_to_readonly = function(val){
