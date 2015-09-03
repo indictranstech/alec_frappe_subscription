@@ -32,11 +32,12 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
 
 cur_frm.cscript.fetch_ups_ground_rates = function(doc, cdt, cdn){
     // if(doc.name.indexOf("New Delivery Note") > -1)
-    if(is_doc_saved())
+    if(doc.is_manual_shipping)
+        frappe.throw("Please uncheck the Manual Shipping Option");
+    else if(is_doc_saved())
         frappe.throw("Please first save the Delivery Note");
-    if(doc.dn_status == "Draft"){
+    else if(doc.dn_status == "Draft")
         frappe.throw("Bin Packing Information not found ...\n");
-    }
     else{
         get_rates(doc, true, "Fetching UPS Ground Rate");
     }
@@ -44,14 +45,12 @@ cur_frm.cscript.fetch_ups_ground_rates = function(doc, cdt, cdn){
 
 cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
     // if(doc.name.indexOf("New Delivery Note") > -1)
-    if(is_doc_saved())
+    if(doc.is_manual_shipping)
+        frappe.throw("Please uncheck the Manual Shipping Option");
+    else if(is_doc_saved())
         frappe.throw("Please first save the Delivery Note");
-    if(doc.dn_status == "Draft"){
+    else if(doc.dn_status == "Draft")
         frappe.throw("Bin Packing Information not found ...\n");
-    }
-    // else if(doc.dn_status == "UPS Rates Fetched"){
-    //     new frappe.UPSShippingRates();
-    // }
     else if(doc.dn_status == "Shipping Labels Created"){
         frappe.throw("Shipping Labels are already Created ...\n");
     }
