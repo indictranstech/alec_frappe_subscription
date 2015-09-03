@@ -4,16 +4,18 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
     // if(doc.name.indexOf("New Delivery Note") > -1)
     //     frappe.throw("Please first save the Delivery Note");
     else{
-        confirm_msg = "<center>Do you really want to create the Packing Slips<br>\
-                        Once Packing Slip Created you can not make changes in Delivery Note</center>"
         if(doc.dn_status == "Draft" || doc.dn_status == "Partialy Packed"){
+            confirm_msg = "<center>Do you really want to create the Packing Slips<br>\
+                            Once Packing Slip Created you can not make changes in Delivery Note</center>"
+
             frappe.confirm(confirm_msg,function(){
                 return frappe.call({
                     freeze: true,
                     freeze_message:"Fetching Bin Packing Information ...",
                     method: "frappe_subscription.bin_packing.get_bin_packing_details",
                     args:{
-                        delivery_note:doc.name,
+                        // delivery_note:doc.name,
+                        delivery_note:doc,
                     },
                     callback: function(r){
                         if(!r.exc) {
@@ -87,6 +89,16 @@ get_rates = function(doc, is_ground, freeze_message){
     })
 }
 
+frappe.ui.form.on("Delivery Note", "onload_post_render", function(doc, cdt, cdn) {
+    var get_other_services = $(":button[data-fieldname='fetch_ups_ground_rates']");
+    var get_bin_details = $(":button[data-fieldname='get_packing_details']");
+    var get_ground_rates = $(":button[data-fieldname='get_ups_rates']");
+    // setting up the class
+    get_bin_details.addClass("btn-primary");
+    get_ground_rates.addClass("btn-primary");
+    get_other_services.addClass("btn-primary");
+});
+
 frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
     dn_status = cur_frm.doc.dn_status;
     if(dn_status != "Draft"){
@@ -120,14 +132,69 @@ frappe.ui.form.on("Delivery Note", "shipping_address_name", function(doc, cdt, c
     }
 });
 
-frappe.ui.form.on("Delivery Note", "validate", function(doc, cdt, cdn) {
-    console.log("Test");
-});
+cur_frm.cscript.is_manual_shipping = function(doc,cdt,cdn){
+    if(doc.is_manual_shipping){
+        service = "Manual";
+        doc.carrier_shipping_rate = 0.0;
+        doc.total_shipping_rate = 0.0;
+        cur_frm.refresh_field("carrier_shipping_rate")
+        cur_frm.refresh_field("total_shipping_rate");
+        set_child_fields_to_readonly(0);
+    }
+    else{
+        service = "03";
+        set_child_fields_to_readonly(1);
+        set_up_taxes_and_charges(service, 0);
+    }
+}
 
-// Shipping Rates Pop Up
+cur_frm.cscript.carrier_shipping_rate = function(doc,cdt,cdn){
+    if(doc.carrier_shipping_rate <= 0 && doc.is_manual_shipping == 1)
+        frappe.msgprint("Invalid Shipping Rate")
+    else
+        set_up_taxes_and_charges(service, doc.carrier_shipping_rate)
+}
+
+set_child_fields_to_readonly = function(val){
+    cur_frm.get_field("packing_slip_details").grid.docfields[5].read_only = val
+    cur_frm.get_field("packing_slip_details").grid.docfields[7].read_only = val
+    cur_frm.set_df_property("carrier_shipping_rate","read_only", val)
+}
+
+set_up_taxes_and_charges = function(code, rate){
+    if(cur_frm.doc.name.indexOf("New Delivery Note") > -1)
+    // if(is_doc_saved())
+        frappe.throw("Please first save the Delivery Note");
+
+    return frappe.call({
+        freeze: true,
+        freeze_message:"Setting Up Taxes and Charges ...",
+        method:"frappe_subscription.frappe_subscription.ups_shipping_rates.add_shipping_charges",
+        args:{
+            dn_name: cur_frm.docname,
+            service_code: code,
+            shipping_rate: rate
+        },
+        callback: function(r){
+            if(r.message) {
+                if(r.message == "True")
+                    msgprint("Shipping Overhead Set in Taxes and Charges");
+                cur_frm.reload_doc();
+            }
+        }
+    });
+}
+
+is_doc_saved = function(){
+    var is_saved = 1
+    is_saved = locals["Delivery Note"][cur_frm.docname].__unsaved
+    return is_saved
+}
+
 var service = ""
 
 frappe.UPSShippingRates = Class.extend({
+    // UPS Other Services Rates POP-UP
 	init: function(rates) {
 		this.make(rates);
 	},
@@ -211,62 +278,3 @@ frappe.UPSShippingRates = Class.extend({
         });
     },
 });
-
-cur_frm.cscript.is_manual_shipping = function(doc,cdt,cdn){
-    if(doc.is_manual_shipping){
-        service = "Manual";
-        doc.carrier_shipping_rate = 0.0;
-        doc.total_shipping_rate = 0.0;
-        cur_frm.refresh_field("carrier_shipping_rate")
-        cur_frm.refresh_field("total_shipping_rate");
-        set_child_fields_to_readonly(0);
-    }
-    else{
-        service = "03";
-        set_child_fields_to_readonly(1);
-        set_up_taxes_and_charges(service, 0);
-    }
-}
-
-cur_frm.cscript.carrier_shipping_rate = function(doc,cdt,cdn){
-    if(doc.carrier_shipping_rate <= 0 && doc.is_manual_shipping == 1)
-        frappe.msgprint("Invalid Shipping Rate")
-    else
-        set_up_taxes_and_charges(service, doc.carrier_shipping_rate)
-}
-
-set_child_fields_to_readonly = function(val){
-    cur_frm.get_field("packing_slip_details").grid.docfields[5].read_only = val
-    cur_frm.get_field("packing_slip_details").grid.docfields[7].read_only = val
-    cur_frm.set_df_property("carrier_shipping_rate","read_only", val)
-}
-
-set_up_taxes_and_charges = function(code, rate){
-    if(cur_frm.doc.name.indexOf("New Delivery Note") > -1)
-    // if(is_doc_saved())
-        frappe.throw("Please first save the Delivery Note");
-
-    return frappe.call({
-        freeze: true,
-        freeze_message:"Setting Up Taxes and Charges ...",
-        method:"frappe_subscription.frappe_subscription.ups_shipping_rates.add_shipping_charges",
-        args:{
-            dn_name: cur_frm.docname,
-            service_code: code,
-            shipping_rate: rate
-        },
-        callback: function(r){
-            if(r.message) {
-                if(r.message == "True")
-                    msgprint("Shipping Overhead Set in Taxes and Charges");
-                cur_frm.reload_doc();
-            }
-        }
-    });
-}
-
-is_doc_saved = function(){
-    var is_saved = 1
-    is_saved = locals["Delivery Note"][cur_frm.docname].__unsaved
-    return is_saved
-}

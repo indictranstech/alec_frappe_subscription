@@ -11,7 +11,8 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
         if bin_algo_response and bin_algo_response.get("not_packed_items"):
             throw_bin_packing_error(bin_algo_response)
         else:
-            dn = frappe.get_doc("Delivery Note",delivery_note)
+            # dn = frappe.get_doc("Delivery Note",delivery_note)
+            dn = frappe.get_doc(json.loads(delivery_note))
 
             if delivery_note and (bin_algo_response or unique_box_items):
                 # bins_packed = bin_algo_response.get("bins_packed")
@@ -43,7 +44,9 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
 
                         ch.item_code = bin_info.get("bin_data").get("id")
                         ch.item_name = frappe.db.get_value("Item",ch.item_code,"item_name")
-                        ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
+                        # ch.packing_slip = create_packing_slip(delivery_note, case_no, bin_info)
+                        #TOREMOVE
+                        ch.packing_slip = create_packing_slip(dn.name, case_no, bin_info)
                         ch.tracking_id = "NA"
                         ch.tracking_status = "Not Packed"
                         case_no += 1

@@ -1,10 +1,10 @@
+import json
 import frappe
 import httplib
 import urllib
-import json
-
 from ec_packing_slip import get_packing_slip_details
 
+# parameter required for 3D bin packing API
 params = {
     "images_background_color": "255,255,255",
     "images_bin_border_color": "59,59,59",
@@ -26,25 +26,21 @@ params = {
 
 @frappe.whitelist()
 def get_bin_packing_details(delivery_note):
-    # check item group of item
+    """create 3D bin packing API JSON request and parse the JSON response"""
     try:
-        dn = frappe.get_doc("Delivery Note", delivery_note)
+        # dn = frappe.get_doc("Delivery Note", delivery_note)
+        dn = frappe.get_doc(json.loads(delivery_note))
 
         if dn.dn_status not in ["Draft","Partialy Packed"]:
             frappe.throw("Packing Slips are already created. Please Reload the Document")
         else:
             items_to_pack = get_items_to_pack(dn)
             to_pack = [item.get("id") for item in items_to_pack]
+
             # get unique box items to create packing slips
-            """
-                unique_box_items = {
-                    item_code:qty
-                }
-            """
             items_with_unique_boxes = get_unique_box_items_to_pack(dn, to_pack)
 
             if items_to_pack:
-                # prepare 3d bin packing request in json format
                 bins = get_bin_details()
                 credentials = get_bin_packing_credentials()
                 request = get_bin_packing_request(bins,items_to_pack,credentials,params)
@@ -58,6 +54,7 @@ def get_bin_packing_details(delivery_note):
         frappe.throw(e)
 
 def get_items_to_pack(dn):
+    """Get the delivery note items, if dn_status is Draft else get the items from not_packed_items field"""
     items_to_pack = []
 
     if dn.dn_status == "Draft":
@@ -80,6 +77,15 @@ def get_items_to_pack(dn):
     return items_to_pack
 
 def get_item_details(item_code, qty):
+    """
+    Get item details like height, depth, lenght, weight and return 3D bin API dict structure for item details
+    {
+        "w":item_width, "h":item_height,
+        "d":item_depth, "q":qty,
+        "vr":1, "id":item_code,
+        "wg":weight
+    }
+    """
     item_details = frappe.db.get_values("Item",item_code,
                                         ["item_group", "unique_box_for_packing", "height", "width", "length", "weight_"],
                                         as_dict=True)
@@ -95,7 +101,6 @@ def get_item_details(item_code, qty):
             weight = item_details[0].get("weight_") or 0
 
             if height and width and depth and weight:
-                # valid item continue with further processing
                 to_dict = {
                     "w": width, "h": height,
                     "d": depth, "q": qty,
@@ -107,7 +112,7 @@ def get_item_details(item_code, qty):
                 frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
 
 def get_unique_box_items_to_pack(dn, to_pack):
-    # unique_box_items = {}
+    """get items which uses the unique box for packing,  if dn_status is Draft else get the items from not_packed_items field"""
     items_with_unique_boxes = []
     if dn.dn_status == "Draft":
         for item in dn.items:
@@ -126,7 +131,7 @@ def get_unique_box_items_to_pack(dn, to_pack):
 
 def get_item_with_unique_box_details(item_code, qty):
     """
-        dict to build
+        prepare 3D bin API like response for items with unique boxes
         {
             "bin_data": {
                 "w": box_w,
@@ -139,16 +144,17 @@ def get_item_with_unique_box_details(item_code, qty):
             },
             "items": [{
                 "id": "item_code",
-                "w": 10,
-                "h": 10,
-                "d": 10,
-                "wg": 30,
-                "image_sbs": "",
+                "w": item_width,
+                "h": item_height,
+                "d": item_depth,
+                "wg": item_weight,
+                "image_sbs": "image of box containing 1 item",
             }]
         }
     """
     box_item_code = ""
     to_dict = {}
+
     item_details = frappe.db.get_values("Item",item_code,
                                         ["item_group", "unique_box_for_packing", "height", "width", "length", "weight_","box"],
                                         as_dict=True)
@@ -171,7 +177,12 @@ def get_item_with_unique_box_details(item_code, qty):
                         "w": width, "h": height,
                         "d": depth, "id": item_code,
                         "wg": weight,
-                        "image_sbs": "iVBORw0KGgoAAAANSUhEUgAAAGYAAABlBAMAAABNZYv/AAAAG1BMVEX///87Ozvm5uaxDg7WT0/XZ2eRhYVjXV3IyMiQHr0rAAAACXBIWXMAAA7EAAAOxAGVKw4bAAABAUlEQVRYhe3YOxaDMAxEUVf0aVjfVLAD2D5/sOXC89ocu795dJGUUnjD2npTJGlukWXhmbky7cwajZGpjJGJxslE42SCsTLBWJnSeJnSeJnCmJnCmJncuJncuJnM2JnM2JnP+JnP+JnXgMxrQOYxJPMYkrkNytwGZS7DMpdhmdPAzGlg5jA0cxia2c0wtV780YV/2m7GbrrppptuuvlbI272v21sxM0xhVAjbs6hChpxc82IzIibe+RFRtw8Ezwx4uZdSIARN99+5Rtxk62LthE3+fbrGnFTLPOmETflbcIz4iacWiwjbuLlyDHipjqEGSZmDFPf9cbmblZl0q/5KrIBGDsbH0e414QAAAAASUVORK5CYII="
+                        "image_sbs":"""iVBORw0KGgoAAAANSUhEUgAAAGYAAABlBAMAAABNZYv/AAAAG1BMVEX///87Ozvm5uaxDg7WT0/XZ2eRhYVjXV3IyMiQHr\
+                                    0rAAAACXBIWXMAAA7EAAAOxAGVKw4bAAABAUlEQVRYhe3YOxaDMAxEUVf0aVjfVLAD2D5/sOXC89ocu795dJGUUnjD2npT\
+                                    JGlukWXhmbky7cwajZGpjJGJxslE42SCsTLBWJnSeJnSeJnCmJnCmJncuJncuJnM2JnM2JnP+JnP+JnXgMxrQOYxJPMYkr\
+                                    kNytwGZS7DMpdhmdPAzGlg5jA0cxia2c0wtV780YV/2m7GbrrppptuuvlbI272v21sxM0xhVAjbs6hChpxc82IzIibe+RF\
+                                    Rtw8Ezwx4uZdSIARN99+5Rtxk62LthE3+fbrGnFTLPOmETflbcIz4iacWiwjbuLlyDHipjqEGSZmDFPf9cbmblZl0q/5Kr\
+                                    IBGDsbH0e414QAAAAASUVORK5CYII="""
                     }]
                 })
             else:
@@ -191,7 +202,7 @@ def get_item_with_unique_box_details(item_code, qty):
             weight = item_details[0].get("weight_") or 0
 
             if height and width and depth and weight:
-                # valid item continue with further processing
+                # valid box continue with further processing
                 to_dict.update({
                     "bin_data":{
                         "w": width, "h": height,
@@ -206,10 +217,9 @@ def get_item_with_unique_box_details(item_code, qty):
     return to_dict
 
 def get_bin_details():
-    # get item with item group boxes
-    # exclude the unique packing boxes
-    bins = []
+    """get item with item group boxes, exclude the unique packing boxes"""
 
+    bins = []
     query = """SELECT
                 i.name, i.width, i.height, i.length, i.weight_
             FROM
@@ -219,6 +229,7 @@ def get_bin_details():
                 i.item_group='Boxes'
             AND i.name NOT IN (SELECT box FROM `tabItem` WHERE unique_box_for_packing=1)
             AND b.item_code=i.item_code
+            AND b.warehouse=i.default_warehouse
             AND b.actual_qty>0"""
 
     items = frappe.db.sql(query,as_dict=True)
