@@ -28,8 +28,8 @@ def on_delivery_note_cancel(doc, method):
 
         [doc.remove(ch) for ch in ch_to_remove]
         remove_shipping_overhead(doc)
-        [frappe.delete_doc("Packing Slip Details",ch.name) for ch in ch_to_remove]
-        [frappe.delete_doc("Packing Slip", ps_name) for ps_name in ps_to_cancel]
+        [frappe.delete_doc("Packing Slip Details",ch.name, ignore_permissions=True) for ch in ch_to_remove]
+        [frappe.delete_doc("Packing Slip", ps_name, ignore_permissions=True) for ps_name in ps_to_cancel]
 
         doc.dn_status = "Draft"
         doc.boxes_stock_entry = ""
@@ -78,6 +78,19 @@ def is_shipping_overhead_available(doc):
                 break
         return condition
 
+def get_shipping_overhead_amount(doc):
+    overhead = 0
+    params = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
+                        ["default_account","cost_center"], as_dict=True)[0]
+    if not doc.taxes:
+        return condition
+    else:
+        for tax in doc.taxes:
+            if tax.charge_type == "Actual" and tax.account_head == params.get("default_account") and tax.cost_center == params.get("cost_center"):
+                condition = tax.tax_amount
+                break
+        return condition
+
 def remove_shipping_overhead(doc):
     to_remove = []
 
@@ -95,11 +108,23 @@ def remove_shipping_overhead(doc):
         doc.in_words = ""
         doc.ups_rates = json.dumps({})
 
-def validate_address(doc, method):
+def validate(doc, method):
+    validate_address(doc)
+    validate_manual_shipping_rates(doc)
+
+def validate_address(doc):
     if not doc.shipping_address_name:
         frappe.throw("Shipping Address is required")
-    # if dn_status is shipping rates fetched then remove shipping overhead and set ups_rates = {}
-    # if doc.dn_status == "UPS Rates Fetched":
-    #     remove_shipping_overhead(doc)
-    #     doc.dn_status = "Packing Slips Created"
-    #     doc.save(ignore_permissions=True)
+
+def validate_manual_shipping_rates(doc):
+    if doc.is_manual_shipping:
+        if doc.carrier_shipping_rate > 0:
+            tax_amount = get_shipping_overhead_amount(doc)
+            overhead = doc.total_shipping_rate
+            if tax_amount:
+                if tax_amount != overhead:
+                    frappe.throw("Shipping Overhead and Total Shipping Rates does not match")
+            else:
+                frappe.throw("Shipping Overhead is not added ..")
+        else:
+            frappe.throw("Carrier Shipping Rate can not be Zero")

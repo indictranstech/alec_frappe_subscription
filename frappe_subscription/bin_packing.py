@@ -31,7 +31,7 @@ def get_bin_packing_details(delivery_note):
         dn = frappe.get_doc("Delivery Note", delivery_note)
 
         if dn.dn_status not in ["Draft","Partialy Packed"]:
-            frappe.throw("Packing Slips are already created please reload the document")
+            frappe.throw("Packing Slips are already created. Please Reload the Document")
         else:
             items_to_pack = get_items_to_pack(dn)
             to_pack = [item.get("id") for item in items_to_pack]
@@ -134,7 +134,7 @@ def get_item_with_unique_box_details(item_code, qty):
                 "d": box_d,
                 "id": "box_id",
                 "used_space": 100,
-                "weight": box_wt,
+                "weight": item_wt,
                 "used_weight": 100
             },
             "items": [{
@@ -188,7 +188,7 @@ def get_item_with_unique_box_details(item_code, qty):
             height = box_details[0].get("height") or 0
             width = box_details[0].get("width") or 0
             depth = box_details[0].get("length") or 0
-            weight = box_details[0].get("weight_") or 0
+            weight = item_details[0].get("weight_") or 0
 
             if height and width and depth and weight:
                 # valid item continue with further processing

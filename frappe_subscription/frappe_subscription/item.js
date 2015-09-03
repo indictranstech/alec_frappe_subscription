@@ -1,5 +1,7 @@
 frappe.ui.form.on("Item", "unique_box_for_packing", function(frm){
+    cur_frm.doc.box = "";
     cur_frm.set_df_property("box", "reqd", cur_frm.doc.unique_box_for_packing);
+    cur_frm.refresh_fields();
 });
 
 frappe.ui.form.on("Item", "item_group", function(frm){

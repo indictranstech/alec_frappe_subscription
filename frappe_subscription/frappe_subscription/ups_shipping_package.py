@@ -158,7 +158,7 @@ def create_boxes_stock_entry(delivery_note):
         qty = (boxes_used.get(row.item_code) + 1) if boxes_used.get(row.item_code) else 1
 
         warehouse = frappe.db.get_value("Item", row.item_code, "default_warehouse")
-        available_qty = frappe.db.get_value("Bin",{"item_code":"row.item_code", "warehouse":warehouse},"actual_qty") or 0
+        available_qty = frappe.db.get_value("Bin",{"item_code":row.item_code, "warehouse":warehouse},"actual_qty") or 0
         if available_qty < qty:
             frappe.throw("Please check the stock balance for Box : %s"%row.item_code)
         boxes_used.update({

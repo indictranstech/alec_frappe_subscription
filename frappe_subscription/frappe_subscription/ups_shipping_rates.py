@@ -117,6 +117,9 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
     if rates.get(service_code) or service_code == "Manual":
         if service_code == "Manual":
             shipping_charge = flt(shipping_rate) or 0.0
+            # if shipping_charge == 0:
+            #     frappe.throw("Shipping Rate can not be zero")
+
         else:
             # rates = json.loads(dn.ups_rates)
             shipping_charge = rates.get(service_code) or 0.0

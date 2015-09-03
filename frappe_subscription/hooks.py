@@ -73,7 +73,8 @@ doc_events = {
 		"on_update_after_submit": "frappe_subscription.ec_packing_slip.on_packing_slip_update",
 	},
 	"Delivery Note": {
-		"on_update": "frappe_subscription.frappe_subscription.ec_delivery_note.validate_address",
+		"validate": "frappe_subscription.frappe_subscription.ec_delivery_note.validate",
+		# "on_update": "frappe_subscription.frappe_subscription.ec_delivery_note.validate_address",
 		"on_cancel": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_cancel",
 		"before_submit": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_submit",
 	},

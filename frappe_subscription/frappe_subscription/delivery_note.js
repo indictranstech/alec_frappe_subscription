@@ -1,52 +1,50 @@
 cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
-    if(doc.name.indexOf("New Delivery Note") > -1)
+    if(is_doc_saved())
         frappe.throw("Please first save the Delivery Note");
+    // if(doc.name.indexOf("New Delivery Note") > -1)
+    //     frappe.throw("Please first save the Delivery Note");
     else{
         confirm_msg = "<center>Do you really want to create the Packing Slips<br>\
                         Once Packing Slip Created you can not make changes in Delivery Note</center>"
-        frappe.confirm(confirm_msg,function(){
-            return frappe.call({
-                freeze: true,
-                freeze_message:"Fetching Bin Packing Information ...",
-                method: "frappe_subscription.bin_packing.get_bin_packing_details",
-                args:{
-                    delivery_note:doc.name,
-                },
-                callback: function(r){
-                    if(!r.exc) {
-                        cur_frm.reload_doc();
-                        if(r.message.status == "Packing Slips Created"){
-                            frappe.msgprint("Packing Slip Created");
+        if(doc.dn_status == "Draft" || doc.dn_status == "Partialy Packed"){
+            frappe.confirm(confirm_msg,function(){
+                return frappe.call({
+                    freeze: true,
+                    freeze_message:"Fetching Bin Packing Information ...",
+                    method: "frappe_subscription.bin_packing.get_bin_packing_details",
+                    args:{
+                        delivery_note:doc.name,
+                    },
+                    callback: function(r){
+                        if(!r.exc) {
+                            cur_frm.reload_doc();
+                            if(r.message.status == "Packing Slips Created")
+                                frappe.msgprint("Packing Slip Created");
                         }
-                        // else if(r.message.status == "Parially Packed"){
-                        //     msg = "Following Items are Not Packed : ";
-                        //     items = JSON.parse(r.message.not_packed_items);
-                        //     $.each(items, function(key, val){
-                        //         msg += "\nItem : "+key+", Qty : "+val;
-                        //     })
-                        //     frappe.msgprint(msg);
-                        // }
-                    }
-                },
+                    },
+                });
             });
-        });
+        }
+        else
+            frappe.throw("Packing Slips are already created. Please Reload the Document")
     }
 }
 
 cur_frm.cscript.fetch_ups_ground_rates = function(doc, cdt, cdn){
-    if(doc.name.indexOf("New Delivery Note") > -1)
+    // if(doc.name.indexOf("New Delivery Note") > -1)
+    if(is_doc_saved())
         frappe.throw("Please first save the Delivery Note");
     if(doc.dn_status == "Draft"){
         frappe.throw("Bin Packing Information not found ...\n");
     }
     else{
         get_rates(doc, true, "Fetching UPS Ground Rate");
-        // new frappe.UPSShippingRates();
     }
 }
 
 cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
-    if(doc.name.indexOf("New Delivery Note") > -1)
+    // if(doc.name.indexOf("New Delivery Note") > -1)
+    if(is_doc_saved())
         frappe.throw("Please first save the Delivery Note");
     if(doc.dn_status == "Draft"){
         frappe.throw("Bin Packing Information not found ...\n");
@@ -58,7 +56,7 @@ cur_frm.cscript.get_ups_rates = function(doc,cdt,cdn){
         frappe.throw("Shipping Labels are already Created ...\n");
     }
     else{
-        if(doc.ups_rates){
+        if(doc.ups_rates && doc.ups_rates != "{}"){
             new frappe.UPSShippingRates(JSON.parse(doc.ups_rates));
         }
         else{
@@ -82,11 +80,8 @@ get_rates = function(doc, is_ground, freeze_message){
             callback: function(r){
                 if(!r.exc) {
                     cur_frm.reload_doc();
-                    if(!is_ground){
-                        // // cur_frm.doc.ups_rates = r.message;
-                        // ups_rates = r.message;
+                    if(!is_ground)
                         new frappe.UPSShippingRates(r.message);
-                    }
                 }
             },
         });
@@ -104,7 +99,7 @@ frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
 frappe.ui.form.on("Delivery Note Item", "items_remove", function(doc, cdt, cdn) {
     dn_status = cur_frm.doc.dn_status;
     if(dn_status != "Draft"){
-        frappe.msgprint("Delivery Note is in Freezed State can not delete item !!");
+        frappe.msgprint("Did not save");
         cur_frm.reload_doc();
     }
 });
@@ -114,6 +109,7 @@ frappe.ui.form.on("Delivery Note Item", "qty", function(doc, cdt, cdn) {
     if(dn_status != "Draft"){
         frappe.msgprint("Delivery Note is in Freezed State can not change the qty !!");
         cur_frm.fields_dict["items"].grid.grid_rows[cur_frm.doc.items.length - 1].remove();
+        cur_frm.reload_doc();
     }
 });
 
@@ -123,6 +119,10 @@ frappe.ui.form.on("Delivery Note", "shipping_address_name", function(doc, cdt, c
         cur_frm.reload_doc();
         frappe.throw("UPS Shipping Rates are already fetched can not change the address");
     }
+});
+
+frappe.ui.form.on("Delivery Note", "validate", function(doc, cdt, cdn) {
+    console.log("Test");
 });
 
 // Shipping Rates Pop Up
@@ -170,6 +170,8 @@ frappe.UPSShippingRates = Class.extend({
     append_shipping_charges: function(ups_rates,doc){
         var rates = ups_rates
         service = rates["service_used"];
+        if(!service)
+            service = "03"
         service_mapper = {
             "01":"Next Day Air",
             "02":"2nd Day Air",
@@ -242,6 +244,7 @@ set_child_fields_to_readonly = function(val){
 
 set_up_taxes_and_charges = function(code, rate){
     if(cur_frm.doc.name.indexOf("New Delivery Note") > -1)
+    // if(is_doc_saved())
         frappe.throw("Please first save the Delivery Note");
 
     return frappe.call({
@@ -261,4 +264,10 @@ set_up_taxes_and_charges = function(code, rate){
             }
         }
     });
+}
+
+is_doc_saved = function(){
+    var is_saved = 1
+    is_saved = locals["Delivery Note"][cur_frm.docname].__unsaved
+    return is_saved
 }
