@@ -42,6 +42,8 @@ def get_bin_packing_details(delivery_note):
 
             if items_to_pack:
                 bins = get_bin_details()
+                if not bins:
+                    frappe.throw("No Bins Founds, Please check the stock")
                 credentials = get_bin_packing_credentials()
                 request = get_bin_packing_request(bins,items_to_pack,credentials,params)
                 response = get_bin_packing_response(request)
@@ -289,5 +291,6 @@ def get_bin_packing_response(request):
         return response
     else:
         errors = response.get("response").get("errors")
-        msg = "Packing Slip can not be created\n%s"%("\n".join(errors))
+        # msg = "Packing Slip can not be created\n%s"%("\n".join(errors))
+        msg = "Packing Slip can not be created\n"
         frappe.throw(msg)

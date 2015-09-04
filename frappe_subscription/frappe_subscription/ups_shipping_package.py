@@ -37,6 +37,8 @@ def get_shipping_labels(delivery_note):
         dn.boxes_stock_entry = create_boxes_stock_entry(dn)
     except PyUPSException, e:
         frappe.throw(e[0])
+    except Exception, e:
+        frappe.throw("Can not reach to UPS Server please try after some time ...")
 
 def get_shipment_confirm_service(params):
     return ShipmentConfirm(

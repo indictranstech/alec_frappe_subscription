@@ -4,7 +4,6 @@ from ups.shipping_package import ShipmentConfirm
 
 class UPSHelper(object):
     """docstring for UPSHelper"""
-    # TODO mappers
 
     @staticmethod
     def get_ups_api_params():
@@ -50,24 +49,35 @@ class UPSHelper(object):
 
     @staticmethod
     def get_address(doc, is_ship_from= False):
+        addr = ""
         if is_ship_from:
+            address_line1 = doc.address_line_1 or ""
+            address_line2 = doc.address_line_2 or ""
+            city = doc.city or ""
+            state = doc.state or ""
+            country_code = doc.country or ""
+            pincode = doc.pin_code or ""
+            addr = "warehouse"
+        else:
+            address_line1 = doc.address_line1 or ""
+            address_line2 = doc.address_line2 or ""
+            city = doc.city or ""
+            state = doc.state or ""
+            country_code = frappe.db.get_value("Country",doc.country,"code") or ""
+            pincode = str(doc.pincode) or ""
+            addr = "shipping"
+
+        if address_line1 and city and state and country_code and pincode:
             return ShipmentConfirm.address_type(
-                AddressLine1= doc.address_line_1 or "",
-                AddressLine2= doc.address_line_2 or "",
-                City= doc.city or "",
-                StateProvinceCode= doc.state or "",
-                CountryCode= doc.country or "",
-                PostalCode= doc.pin_code or ""
+                AddressLine1= address_line1,
+                AddressLine2= address_line2,
+                City= city,
+                StateProvinceCode= state,
+                CountryCode= country_code,
+                PostalCode= pincode,
             )
         else:
-            return ShipmentConfirm.address_type(
-                AddressLine1= doc.address_line1 or "",
-                AddressLine2= doc.address_line2 or "",
-                City= doc.city or "",
-                StateProvinceCode= doc.state or "",
-                CountryCode= frappe.db.get_value("Country",doc.country,"code") or "",
-                PostalCode=str(doc.pincode) or "",
-            )
+            frappe.throw("Invalid address details, Please check the %s address"%(addr))
 
     @staticmethod
     def get_ship_to_address(params, address_name):
