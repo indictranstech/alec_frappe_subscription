@@ -29,7 +29,7 @@ def get_shipping_labels(delivery_note):
         shipment_accept_request = ShipmentAccept.shipment_accept_request_type(digest)
         response = shipment_accept_api.request(shipment_accept_request)
 
-        shipping_info = parse_xml_response_to_json(response)
+        shipping_info = parse_xml_response_to_json(response, doc.carrier_shipping_rate)
 
         # save tracking no and labels to delivery note
         save_tracking_number_and_shipping_labels(dn, shipping_info)
@@ -87,7 +87,7 @@ def get_ups_shipment_confirm_request(delivery_note, params):
     request.find("Shipment").extend(packages)
     return request
 
-def parse_xml_response_to_json(response):
+def parse_xml_response_to_json(response, shipping_rate):
     info = {}
     if response.find("Response").find("ResponseStatusCode").text == "1":
         shipment_result = response.find("ShipmentResults")
@@ -100,6 +100,8 @@ def parse_xml_response_to_json(response):
                 "total_charges": service_charges.text
             })
 
+            # # check if Total Charges from ups and UPS rates are equal or not ?
+            # if flt(service_charges.text) == shipping_rate:
             idx = 1
             for package in shipment_result.iterchildren(tag='PackageResults'):
                 tracking_id = package.find("TrackingNumber").text
@@ -114,6 +116,11 @@ def parse_xml_response_to_json(response):
                     }
                 })
                 idx += 1
+            # else:
+            #     # set up the corrected shipping charges
+            #     query = """UPDATE `tabDelivery Note` set carrier_shipping_rate=%s\
+            #             """
+            #     frappe.db.sql()
         else:
             frappe.throw("Can Not find the Service and Total Charges Attribute in RatedShipment")
 
