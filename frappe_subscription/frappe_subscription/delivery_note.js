@@ -75,7 +75,8 @@ get_rates = function(doc, is_ground, freeze_message){
             freeze_message:freeze_message,
             method: "frappe_subscription.frappe_subscription.ups_shipping_rates.get_shipping_rates",
             args:{
-                delivery_note:doc.name,
+                // delivery_note:doc.name,
+                delivery_note:doc,
                 add_shipping_overhead: is_ground
             },
             callback: function(r){

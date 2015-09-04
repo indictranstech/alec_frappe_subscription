@@ -11,10 +11,10 @@ from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Help
 
 @frappe.whitelist()
 def get_shipping_rates(delivery_note, add_shipping_overhead=False):
-    # get packages Information from delivery note
-    # create the xml request to fetch the ups rates
+    """get packages Information from delivery note, create the xml request to fetch the ups rates"""
     try:
-        dn = frappe.get_doc("Delivery Note",delivery_note)
+        # dn = frappe.get_doc("Delivery Note",delivery_note)
+        dn = frappe.get_doc(json.loads(delivery_note))
 
         if dn.dn_status in ["Draft", "Partialy Packed"]:
             frappe.throw("First create the packing slips")
@@ -30,6 +30,7 @@ def get_shipping_rates(delivery_note, add_shipping_overhead=False):
         dn.dn_status = "UPS Rates Fetched"
 
         dn.save(ignore_permissions= True)
+
         if shipping_rates.get("03"):
             if add_shipping_overhead: add_shipping_charges(dn_name=dn.name, service_code="03")
             # return True

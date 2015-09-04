@@ -5,7 +5,8 @@ from frappe.utils.dateutils import datetime_in_user_format, get_user_date_format
 from erpnext.stock.doctype.delivery_note.delivery_note import make_sales_invoice
 from frappe_subscription.frappe_subscription.ups_package_tracking import get_package_tracking_status
 
-def track_and_update_packing_slip():
+# def track_and_update_packing_slip():
+def track_packages():
     # track packages and update the status
     # get all the packing_slips name
     date_format = convert_user_date_format()
@@ -28,6 +29,7 @@ def track_and_update_packing_slip():
 
         for ps in packing_slips:
             status = get_package_tracking_status(ps.get("tracking_id"))
+            # status = get_package_tracking_status("5932428095")
             # status = get_package_tracking_status("990728071")                 # In Transit
             # status = get_package_tracking_status("1Z12345E0291980793")        # Delivered
 

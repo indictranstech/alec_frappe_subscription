@@ -97,7 +97,8 @@ scheduler_events = {
 	# 	"frappe_subscription.tasks.daily"
 	# ],
 	"hourly": [
-		"frappe_subscription.frappe_subscription.tasks.track_and_update_packing_slip"
+		# "frappe_subscription.frappe_subscription.tasks.track_and_update_packing_slip"
+		"frappe_subscription.frappe_subscription.tasks.track_packages",
 	]
 	# "weekly": [
 	# 	"frappe_subscription.tasks.weekly"
