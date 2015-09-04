@@ -29,7 +29,7 @@ def get_shipping_labels(delivery_note):
         shipment_accept_request = ShipmentAccept.shipment_accept_request_type(digest)
         response = shipment_accept_api.request(shipment_accept_request)
 
-        shipping_info = parse_xml_response_to_json(response, doc.carrier_shipping_rate)
+        shipping_info = parse_xml_response_to_json(response, dn.carrier_shipping_rate)
 
         # save tracking no and labels to delivery note
         save_tracking_number_and_shipping_labels(dn, shipping_info)
