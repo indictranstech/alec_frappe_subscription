@@ -139,11 +139,18 @@ def validate_update_packing_slip_details(doc):
         # Update tracking id and tracking status on packing slip
         for ps_details in doc.packing_slip_details:
             if ps_details.tracking_id == "NA":
-                frappe.throw("Tracking ID of %s package can not be NA, Please update the tracking ID")
+                frappe.throw("Tracking ID can not be set to 'NA', Please update the tracking ID")
             else:
-                query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
-                        track_status='Manual' WHERE name='%s'"""%(ps_details.tracking_id,
-                        ps_details.tracking_status, ps_details.packing_slip)
-                frappe.db.sql(query)
+                update_packing_slip(ps_details.tracking_id, ps_details.tracking_status, ps_details.packing_slip)
     else:
         frappe.throw("First Add the Shipping Overhead")
+
+def update_packing_slip(tracking_id, tracking_status, packing_slip):
+    query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
+            track_status='Manual' WHERE name='%s'"""%(tracking_id, tracking_status,
+            packing_slip)
+    frappe.db.sql(query)
+
+def on_update_after_submit(doc, method):
+    for ps_details in doc.packing_slip_details:
+        update_packing_slip(ps_details.tracking_id, ps_details.tracking_status, ps_details.packing_slip)

@@ -172,8 +172,8 @@ def on_packing_slip_update(doc, method):
     """ update the tracking status on delivery note """
     if doc.track_status == "Manual":
         query = """UPDATE `tabPacking Slip Details` SET tracking_status='%s'
-                WHERE parent='%s' AND tracking_id='%s'"""%(doc.tracking_status,
-                doc.delivery_note, doc.tracking_id)
+                WHERE parent='%s' AND tracking_id='%s' AND packing_slip='%s'"""%(doc.tracking_status,
+                doc.delivery_note, doc.tracking_id, doc.name)
 
         frappe.db.sql(query)
 

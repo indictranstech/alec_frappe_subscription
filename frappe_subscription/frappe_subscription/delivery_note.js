@@ -98,6 +98,13 @@ frappe.ui.form.on("Delivery Note", "onload_post_render", function(doc, cdt, cdn)
     get_bin_details.addClass("btn-primary");
     get_ground_rates.addClass("btn-primary");
     get_other_services.addClass("btn-primary");
+
+    if(cur_frm.doc.docstatus == 1 && cur_frm.doc.is_manual_shipping)
+        cur_frm.get_field("packing_slip_details").grid.docfields[7].read_only = 0; // setting the tracking status field to editable
+    else if (cur_frm.doc.docstatus == 0 && cur_frm.doc.is_manual_shipping)
+        set_child_fields_to_readonly(0);    // removes the read only property
+    else
+        set_child_fields_to_readonly(1);    // setting the fields to read only
 });
 
 frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {

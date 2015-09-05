@@ -77,6 +77,7 @@ doc_events = {
 		# "on_update": "frappe_subscription.frappe_subscription.ec_delivery_note.validate_address",
 		"on_cancel": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_cancel",
 		"before_submit": "frappe_subscription.frappe_subscription.ec_delivery_note.on_delivery_note_submit",
+		"on_update_after_submit": "frappe_subscription.frappe_subscription.ec_delivery_note.on_update_after_submit",
 	},
 	"Address":{
 		"validate": "frappe_subscription.frappe_subscription.ec_address.validate_address",

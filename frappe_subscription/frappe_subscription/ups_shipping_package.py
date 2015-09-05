@@ -29,7 +29,7 @@ def get_shipping_labels(delivery_note):
         shipment_accept_request = ShipmentAccept.shipment_accept_request_type(digest)
         response = shipment_accept_api.request(shipment_accept_request)
 
-        shipping_info = parse_xml_response_to_json(response, dn.carrier_shipping_rate)
+        shipping_info = parse_xml_response_to_json(response, dn)
 
         # save tracking no and labels to delivery note
         save_tracking_number_and_shipping_labels(dn, shipping_info)
@@ -45,7 +45,7 @@ def get_shipment_confirm_service(params):
         params.get("ups_license"),
         params.get("ups_user_name"),
         params.get("ups_password"),
-        True                        # sandbox for testing purpose set as True for production set it to False
+        params.get("ups_mode"),         # sandbox for testing purpose set as True for production set it to False
     )
 
 def get_shipment_accept_service(params):
@@ -53,7 +53,7 @@ def get_shipment_accept_service(params):
         params.get("ups_license"),
         params.get("ups_user_name"),
         params.get("ups_password"),
-        True                        # sandbox for testing purpose set as True for production set it to False
+        params.get("ups_mode"),         # sandbox for testing purpose set as True for production set it to False
     )
 
 def get_ups_shipment_confirm_request(delivery_note, params):
@@ -82,15 +82,16 @@ def get_ups_shipment_confirm_request(delivery_note, params):
         Helper.get_ship_to_address(ship_to_params, dn.shipping_address_name,),
         Helper.get_ship_from_address(params, ship_from_address_name),
         Helper.get_payment_info(AccountNumber=shipper_number),
-        # ShipmentConfirm.service_type(Code='03'),    # UPS Standard #TODO add service_type
         ShipmentConfirm.service_type(Code=service_code),
         Description="Description"
     )
     request.find("Shipment").extend(packages)
     return request
 
-def parse_xml_response_to_json(response, shipping_rate):
+def parse_xml_response_to_json(response, delivery_note):
     info = {}
+    shipping_rate = flt(delivery_note.carrier_shipping_rate) or 0
+
     if response.find("Response").find("ResponseStatusCode").text == "1":
         shipment_result = response.find("ShipmentResults")
         shipment_charges = shipment_result.find("ShipmentCharges")
@@ -103,32 +104,46 @@ def parse_xml_response_to_json(response, shipping_rate):
             })
 
             # # check if Total Charges from ups and UPS rates are equal or not ?
-            # if flt(service_charges.text) == shipping_rate:
-            idx = 1
-            for package in shipment_result.iterchildren(tag='PackageResults'):
-                tracking_id = package.find("TrackingNumber").text
-                label = package.find("LabelImage").find("GraphicImage").text
-                # packing_slip = package.find("Description").text
-                # packing_slip = packing_slip.split("/")[1]
-                info.update({
-                    # packing_slip:{
-                    idx:{
-                        "tracking_id":tracking_id,
-                        "label":label
-                    }
-                })
-                idx += 1
-            # else:
-            #     # set up the corrected shipping charges
-            #     query = """UPDATE `tabDelivery Note` set carrier_shipping_rate=%s\
-            #             """
-            #     frappe.db.sql()
+            if flt(service_charges.text) == shipping_rate:
+                package_details = set_packages_details(shipment_result)
+                info.update(package_details)
+            else:
+                # set up the corrected shipping charges
+                delivery_note.carrier_shipping_rate = flt(service_charges.text) or 0
+                delivery_note.total_shipping_rate = delivery_note.carrier_shipping_rate or 0 + (delivery_note.carrier_shipping_rate or 0 * (delivery_note.shipping_overhead_rate or 0/100))
+
+                from frappe_subscription.frappe_subscription.ec_delivery_note import get_shipping_overhead_row
+                row = get_shipping_overhead_row(delivery_note)
+                row.tax_amount = delivery_note.total_shipping_rate
+
+                delivery_note.save(ignore_permissions=True)
+                package_details = set_packages_details(shipment_result)
+                info.update(package_details)
         else:
             frappe.throw("Can Not find the Service and Total Charges Attribute in RatedShipment")
 
         return info
     else:
         frappe.throw(response.find("Response").find("ResponseStatusDescription").text)
+
+def set_packages_details(shipment_result):
+    info = {}
+    idx = 1
+    for package in shipment_result.iterchildren(tag='PackageResults'):
+        tracking_id = package.find("TrackingNumber").text
+        label = package.find("LabelImage").find("GraphicImage").text
+        # packing_slip = package.find("Description").text
+        # packing_slip = packing_slip.split("/")[1]
+        info.update({
+            # packing_slip:{
+            idx:{
+                "tracking_id":tracking_id,
+                "label":label
+            }
+        })
+        idx += 1
+
+    return info
 
 def save_tracking_number_and_shipping_labels(dn, shipment_info):
     for row in dn.packing_slip_details:
@@ -139,22 +154,17 @@ def save_tracking_number_and_shipping_labels(dn, shipment_info):
             row.shipping_label = "<img src='data:image/gif;base64,%s'/>"%(info.get('label'))
             row.tracking_status = "Labels Printed"
 
-            query = """Update `tabPacking Slip` set tracking_id='%s' where
-                    delivery_note='%s' and name='%s'"""%(info.get("tracking_id"),
-                    dn.name, row.packing_slip)
-            frappe.db.sql(query)
+            update_packing_slip(row.packing_slip, info)
         else:
             frappe.throw("Error while parsing xml response")
-
-        update_packing_slip(row.packing_slip, info)
 
     dn.dn_status = "Shipping Labels Created"
     # dn.save(ignore_permissions=True)
 
 def update_packing_slip(packing_slip, info):
-    query = """UPDATE `tabPacking Slip` set tracking_id='%s', tracking_status='%s'
-            WHERE name='%s'"""%(info.get("tracking_id"), "Labels Printed",
-            packing_slip)
+    query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
+            track_status='Auto' WHERE name='%s'"""%(info.get("tracking_id"),
+            "Labels Printed", packing_slip)
     frappe.db.sql(query)
 
 def create_boxes_stock_entry(delivery_note):
