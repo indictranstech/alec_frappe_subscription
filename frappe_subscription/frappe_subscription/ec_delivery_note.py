@@ -53,17 +53,7 @@ def on_delivery_note_submit(doc, method):
         get_shipping_labels(doc)
     else:
         # validate if shipping overhead is calculated
-        condition = is_shipping_overhead_available(doc)
-
-        if doc.carrier_shipping_rate and condition:
-            # Update tracking id and tracking status on packing slip
-            for ps_details in doc.packing_slip_details:
-                query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
-                        track_status='Manual' WHERE name='%s'"""%(ps_details.tracking_id,
-                        ps_details.tracking_status, ps_details.packing_slip)
-                frappe.db.sql(query)
-        else:
-            frappe.throw("First Add the Shipping Overhead")
+        validate_update_packing_slip_details(doc)
 
 def is_shipping_overhead_available(doc):
     condition = False
@@ -141,3 +131,19 @@ def validate_manual_shipping_rates(doc):
                 frappe.throw("Shipping Overhead is not added ..")
         else:
             frappe.throw("Carrier Shipping Rate can not be Zero")
+
+def validate_update_packing_slip_details(doc):
+    condition = is_shipping_overhead_available(doc)
+
+    if doc.carrier_shipping_rate and condition:
+        # Update tracking id and tracking status on packing slip
+        for ps_details in doc.packing_slip_details:
+            if ps_details.tracking_id == "NA":
+                frappe.throw("Tracking ID of %s package can not be NA, Please update the tracking ID")
+            else:
+                query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
+                        track_status='Manual' WHERE name='%s'"""%(ps_details.tracking_id,
+                        ps_details.tracking_status, ps_details.packing_slip)
+                frappe.db.sql(query)
+    else:
+        frappe.throw("First Add the Shipping Overhead")

@@ -3,7 +3,7 @@ cur_frm.cscript.after_cancel = function(doc,cdt,cdn){
     frappe.set_route('List', "Packing Slip");
 }
 
-frappe.ui.form.on("Packing Slip", "onload", function(doc) {
+frappe.ui.form.on("Packing Slip", "onload_post_render", function(doc) {
     set_fields_readonly(doc);
 });
 
