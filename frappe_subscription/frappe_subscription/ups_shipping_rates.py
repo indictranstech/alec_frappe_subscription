@@ -48,7 +48,7 @@ def get_rating_service(params):
         params.get("ups_license"),
         params.get("ups_user_name"),
         params.get("ups_password"),
-        True                        # sandbox for testing purpose set as True for production set it to False
+        params.get("ups_mode"),                        # sandbox for testing purpose set as True for production set it to False
     )
 
 def get_ups_rating_request(delivery_note, params):

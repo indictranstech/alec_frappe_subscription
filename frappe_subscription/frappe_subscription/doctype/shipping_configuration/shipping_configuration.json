@@ -6,10 +6,12 @@
  "custom": 0, 
  "docstatus": 0, 
  "doctype": "DocType", 
- "document_type": "Master", 
+ "document_type": "Setup", 
  "fields": [
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "binpacking", 
    "fieldtype": "Section Break", 
    "hidden": 0, 
@@ -30,6 +32,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "3D Bin Packing API User Name", 
    "fieldname": "binpacking_user_name", 
    "fieldtype": "Data", 
@@ -51,6 +55,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "column_break_3", 
    "fieldtype": "Column Break", 
    "hidden": 0, 
@@ -70,6 +76,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "API Key Provided By 3D Bin", 
    "fieldname": "binpacking_api_key", 
    "fieldtype": "Data", 
@@ -91,6 +99,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "ups_api_configuration", 
    "fieldtype": "Section Break", 
    "hidden": 0, 
@@ -111,6 +121,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "UPS Account User Name", 
    "fieldname": "ups_user_name", 
    "fieldtype": "Data", 
@@ -132,6 +144,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "column_break_7", 
    "fieldtype": "Column Break", 
    "hidden": 0, 
@@ -151,6 +165,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "UPS Account Password", 
    "fieldname": "ups_password", 
    "fieldtype": "Password", 
@@ -172,6 +188,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "section_break_9", 
    "fieldtype": "Section Break", 
    "hidden": 0, 
@@ -191,6 +209,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "API License Key Provided By UPS", 
    "fieldname": "ups_license", 
    "fieldtype": "Data", 
@@ -212,6 +232,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "column_break_11", 
    "fieldtype": "Column Break", 
    "hidden": 0, 
@@ -231,6 +253,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "Shipper Number Provided By USP", 
    "fieldname": "shipper_number", 
    "fieldtype": "Data", 
@@ -252,6 +276,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "other_details", 
    "fieldtype": "Section Break", 
    "hidden": 0, 
@@ -272,6 +298,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "Please Enter UPS Account Users Full Name", 
    "fieldname": "user_name", 
    "fieldtype": "Data", 
@@ -293,6 +321,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "default": "Ground", 
    "description": "UPS Service Type", 
    "fieldname": "service_type", 
@@ -316,6 +346,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "Shipper Address will be fetched from selected warehouse", 
    "fieldname": "default_warehouse", 
    "fieldtype": "Link", 
@@ -338,6 +370,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "column_break_16", 
    "fieldtype": "Column Break", 
    "hidden": 0, 
@@ -357,6 +391,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "e.g. Energy Choice, Inc.", 
    "fieldname": "attention_name", 
    "fieldtype": "Data", 
@@ -378,6 +414,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "default": "Customer Supplied Package", 
    "description": "UPS Package Type", 
    "fieldname": "package_type", 
@@ -401,6 +439,33 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
+   "default": "Sandbox", 
+   "description": "Please select the UPS API mode<br>\nSandbox - for testing the UPS API<br>\nProduction - to create the Actual Shipment using API", 
+   "fieldname": "ups_mode", 
+   "fieldtype": "Select", 
+   "hidden": 0, 
+   "ignore_user_permissions": 0, 
+   "in_filter": 0, 
+   "in_list_view": 0, 
+   "label": "UPS API Mode", 
+   "no_copy": 0, 
+   "options": "Sandbox\nProduction", 
+   "permlevel": 0, 
+   "precision": "", 
+   "print_hide": 0, 
+   "read_only": 0, 
+   "report_hide": 0, 
+   "reqd": 1, 
+   "search_index": 0, 
+   "set_only_once": 0, 
+   "unique": 0
+  }, 
+  {
+   "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "accounting_information", 
    "fieldtype": "Section Break", 
    "hidden": 0, 
@@ -421,6 +486,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "default_account", 
    "fieldtype": "Link", 
    "hidden": 0, 
@@ -442,6 +509,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "default": "10", 
    "description": "Shipping Overhead Charges in %", 
    "fieldname": "shipping_overhead", 
@@ -464,6 +533,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "fieldname": "column_break_23", 
    "fieldtype": "Column Break", 
    "hidden": 0, 
@@ -483,6 +554,8 @@
   }, 
   {
    "allow_on_submit": 0, 
+   "bold": 0, 
+   "collapsible": 0, 
    "description": "Cost Center to be set in DN under Taxes & Charges against Shipping Overhead", 
    "fieldname": "cost_center", 
    "fieldtype": "Link", 
@@ -512,7 +585,7 @@
  "is_submittable": 0, 
  "issingle": 1, 
  "istable": 0, 
- "modified": "2015-08-18 03:01:04.038004", 
+ "modified": "2015-09-05 02:52:16.519265", 
  "modified_by": "Administrator", 
  "module": "Frappe Subscription", 
  "name": "Shipping Configuration", 

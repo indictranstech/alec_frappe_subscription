@@ -10,7 +10,7 @@ class UPSHelper(object):
         params = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
                             ["ups_user_name", "ups_password", "ups_license",
                             "shipper_number","default_warehouse", "user_name",
-                            "attention_name","package_type"], as_dict=True)
+                            "attention_name","package_type","service_type","ups_mode"], as_dict=True)
         if not params[0]:
             frappe.throw("Shipping Configuration not found plase contact Administrator")
         else:
@@ -22,8 +22,13 @@ class UPSHelper(object):
             name = params[0].get("user_name")
             attention_name = params[0].get("attention_name")
             package_type = params[0].get("package_type") or "02"
+            service_type = params[0].get("service_type")
+            ups_mode = params[0].get("ups_mode")
 
-            if user and pwd and license and shipper_number and warehouse and name and attention_name:
+            if user and pwd and license and shipper_number and warehouse and name and attention_name and service_type and ups_mode:
+                params[0].update({
+                    "ups_mode": True if ups_mode == "Sandbox" else False
+                })
                 return params[0]
             else:
                 frappe.throw("Invalid UPS Configuration, Please contact Administrator")
