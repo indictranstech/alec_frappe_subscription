@@ -168,14 +168,14 @@ def on_packing_slip_cancel(doc, method):
 
                 frappe.delete_doc("Packing Slip",doc.name, ignore_permissions=True)
 
-def on_packing_slip_update(doc, method):
-    """ update the tracking status on delivery note """
-    if doc.track_status == "Manual":
-        query = """UPDATE `tabPacking Slip Details` SET tracking_status='%s'
-                WHERE parent='%s' AND tracking_id='%s' AND packing_slip='%s'"""%(doc.tracking_status,
-                doc.delivery_note, doc.tracking_id, doc.name)
-
-        frappe.db.sql(query)
+# def on_packing_slip_update(doc, method):
+#     """ update the tracking status on delivery note """
+#     if doc.track_status == "Manual":
+#         query = """UPDATE `tabPacking Slip Details` SET tracking_status='%s'
+#                 WHERE parent='%s' AND tracking_id='%s' AND packing_slip='%s'"""%(doc.tracking_status,
+#                 doc.delivery_note, doc.tracking_id, doc.name)
+#
+#         frappe.db.sql(query)
 
 # def remove_bin_items_from_delivery_note(dn_doc, bin_details):
 #     # get item info

@@ -70,7 +70,7 @@ doc_events = {
 	},
 	"Packing Slip": {
 		"on_cancel": "frappe_subscription.ec_packing_slip.on_packing_slip_cancel",
-		"on_update_after_submit": "frappe_subscription.ec_packing_slip.on_packing_slip_update",
+		# "on_update_after_submit": "frappe_subscription.ec_packing_slip.on_packing_slip_update",
 	},
 	"Delivery Note": {
 		"validate": "frappe_subscription.frappe_subscription.ec_delivery_note.validate",
