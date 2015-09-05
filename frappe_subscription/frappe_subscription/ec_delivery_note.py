@@ -83,13 +83,26 @@ def get_shipping_overhead_amount(doc):
     params = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
                         ["default_account","cost_center"], as_dict=True)[0]
     if not doc.taxes:
-        return condition
+        return overhead
     else:
         for tax in doc.taxes:
             if tax.charge_type == "Actual" and tax.account_head == params.get("default_account") and tax.cost_center == params.get("cost_center"):
-                condition = tax.tax_amount
+                overhead = tax.tax_amount
                 break
-        return condition
+        return overhead
+
+def get_shipping_overhead_row(doc):
+    row = None
+    params = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
+                        ["default_account","cost_center"], as_dict=True)[0]
+    if not doc.taxes:
+        return overhead
+    else:
+        for tax in doc.taxes:
+            if tax.charge_type == "Actual" and tax.account_head == params.get("default_account") and tax.cost_center == params.get("cost_center"):
+                row = tax
+                break
+        return row
 
 def remove_shipping_overhead(doc):
     to_remove = []
