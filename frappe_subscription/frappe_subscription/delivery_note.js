@@ -261,14 +261,33 @@ frappe.UPSShippingRates = Class.extend({
             "65":"UPS Saver"
         }
 
+        // sort by key
         services = []
-        $.each(rates, function(key, val){
-            services.push(key)
-        });
-        services = services.sort()
+        // $.each(rates, function(key, val){
+        //     services.push(key)
+        // });
+        // services = services.sort()
+        // sort by value
+        var sortable = []
+        for (var key in rates)
+              sortable.push([key, rates[key]])
+        sortable.sort(function(a, b) {return a[1] - b[1]})
 
-        for (var i = 0; i < services.length; i++) {
-            code = services[i]
+        // for (var i = 0; i < services.length; i++) {
+        //     code = services[i]
+        //     desc = service_mapper[code];
+        //     rate = rates[code]
+
+        //     is_checked = (code == service) ? "checked" : "";
+        //     if(code != "service_used"){
+        //         $("<tr><td><input type='radio' name='service' value='"+ code +"' "+ is_checked +"></td>\
+        //             <td align='center'>"+ code +"</td><td align='center'>"+ desc +"</td><td align='center'>"+
+        //             rate +"</td></tr>").appendTo($("#entries tbody"))
+        //     }
+        // }
+
+        for (var i = 0; i < sortable.length; i++) {
+            code = sortable[i][0]
             desc = service_mapper[code];
             rate = rates[code]
 
