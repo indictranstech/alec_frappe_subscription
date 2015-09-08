@@ -7944,19 +7944,6 @@
  }, 
  {
   "default_value": null, 
-  "doc_type": "Packing Slip", 
-  "docstatus": 0, 
-  "doctype": "Property Setter", 
-  "doctype_or_field": "DocField", 
-  "field_name": "tracking_status", 
-  "modified": "2015-09-04 05:16:14.307705", 
-  "name": "Packing Slip-tracking_status-previous_field", 
-  "property": "previous_field", 
-  "property_type": "Data", 
-  "value": "tracking_id"
- }, 
- {
-  "default_value": null, 
   "doc_type": "Delivery Note", 
   "docstatus": 0, 
   "doctype": "Property Setter", 
@@ -8240,5 +8227,18 @@
   "property": "previous_field", 
   "property_type": "Data", 
   "value": "column_break0"
+ }, 
+ {
+  "default_value": null, 
+  "doc_type": "Packing Slip", 
+  "docstatus": 0, 
+  "doctype": "Property Setter", 
+  "doctype_or_field": "DocField", 
+  "field_name": "tracking_status", 
+  "modified": "2015-09-05 10:38:28.685607", 
+  "name": "Packing Slip-tracking_status-previous_field", 
+  "property": "previous_field", 
+  "property_type": "Data", 
+  "value": "tracking_id"
  }
 ]
