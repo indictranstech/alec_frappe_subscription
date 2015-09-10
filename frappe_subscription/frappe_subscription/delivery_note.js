@@ -186,7 +186,7 @@ set_up_taxes_and_charges = function(code, rate){
         callback: function(r){
             if(r.message) {
                 if(r.message == "True")
-                    msgprint("Shipping Overhead Set in Taxes and Charges");
+                    msgprint("Shipping Charges are set in Taxes and Charges");
                 cur_frm.reload_doc();
             }
         }

@@ -131,7 +131,7 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
         total_charge = shipping_charge + (shipping_charge * (flt(defaults.get("shipping_overhead"))/100))
 
         for row in dn.taxes:
-            condition = (row.charge_type == "Actual" and row.description == "Shipping Overhead"
+            condition = (row.charge_type == "Actual" and row.description == "Shipping Charges"
                         and row.account_head == defaults.get("default_account")
                         and row.cost_center == defaults.get("cost_center"))
 
@@ -172,5 +172,5 @@ def update_taxes_and_charges_row(row, shipping_charge, defaults):
     row.cost_center = defaults.get("cost_center")
     # row.rate = defaults.get("shipping_overhead")
     row.tax_amount = shipping_charge
-    row.description = "Shipping Overhead"
+    row.description = "Shipping Charges"
     return row

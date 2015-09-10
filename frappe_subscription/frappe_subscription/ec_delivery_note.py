@@ -126,9 +126,9 @@ def validate_manual_shipping_rates(doc):
             overhead = doc.total_shipping_rate
             if tax_amount:
                 if tax_amount != overhead:
-                    frappe.throw("Shipping Overhead and Total Shipping Rates does not match")
+                    frappe.throw("Shipping Charges and Total Shipping Rates does not match")
             else:
-                frappe.throw("Shipping Overhead is not added ..")
+                frappe.throw("Shipping Charges is not added ..")
         else:
             frappe.throw("Carrier Shipping Rate can not be Zero")
 
@@ -143,7 +143,7 @@ def validate_update_packing_slip_details(doc):
             else:
                 update_packing_slip(ps_details.tracking_id, ps_details.tracking_status, ps_details.packing_slip)
     else:
-        frappe.throw("First Add the Shipping Overhead")
+        frappe.throw("First Add the Shipping Charges")
 
 def update_packing_slip(tracking_id, tracking_status, packing_slip):
     query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
