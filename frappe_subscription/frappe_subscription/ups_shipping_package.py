@@ -147,11 +147,13 @@ def set_packages_details(shipment_result):
 
 def save_tracking_number_and_shipping_labels(dn, shipment_info):
     for row in dn.packing_slip_details:
-        # info = shipment_info.get(row.packing_slip)
+        # shipping_label = "<div class='page-break' style='width:6.5in'><div class='row'><img src='data:image/gif;base64,%s'/></div></div>"
         info = shipment_info.get(row.idx)
         if info:
             row.tracking_id = info.get("tracking_id")
-            row.shipping_label = "<img src='data:image/gif;base64,%s'/>"%(info.get('label'))
+            # row.shipping_label = "<img src='data:image/gif;base64,%s' style='margin-left: 0.2in;max-width: 6.5in;max-height: 4in;width: auto;height: auto;overflow: hidden'/>"%(info.get('label'))
+            # row.shipping_label = "<img src='data:image/gif;base64,%s' style='margin-left: 0.2in;max-width: 624px;max-height: 384px;width: 624px;height: 384px;overflow: hidden'/>"%(info.get('label'))
+            row.shipping_label = "<img src='data:image/gif;base64,%s' class='ups-label'/>"%(info.get('label'))
             row.tracking_status = "Labels Printed"
 
             update_packing_slip(row.packing_slip, info)
