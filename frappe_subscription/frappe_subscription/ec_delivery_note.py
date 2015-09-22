@@ -11,7 +11,8 @@ def on_delivery_note_cancel(doc, method):
     se_docstatus = frappe.db.get_value("Stock Entry",doc.boxes_stock_entry, "docstatus")
 
     if se_docstatus and se_docstatus != 2:
-        frappe.throw("First Cancel the Stock Entry : %s "%(doc.boxes_stock_entry))
+        link = "<a href= '#Form/Stock Entry/{0}'>{0}</a>".format(doc.boxes_stock_entry)
+        frappe.throw("First Cancel the Stock Entry : %s "%(link))
     else:
         # delete the packing slips
         ps_to_cancel = []
