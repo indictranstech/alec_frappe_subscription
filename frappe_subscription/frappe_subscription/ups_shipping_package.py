@@ -38,6 +38,8 @@ def get_shipping_labels(delivery_note):
     except PyUPSException, e:
         frappe.throw(e[0])
     except Exception, e:
+        import traceback
+        print traceback.format_exc()
         frappe.throw("Can not reach to UPS Server please try after some time ...")
 
 def get_shipment_confirm_service(params):
@@ -83,9 +85,16 @@ def get_ups_shipment_confirm_request(delivery_note, params):
         Helper.get_ship_from_address(params, ship_from_address_name),
         Helper.get_payment_info(AccountNumber=shipper_number),
         ShipmentConfirm.service_type(Code=service_code),
+        # TODO add label containers
+        LabelSpecification = E.LabelSpecification(
+            E.LabelPrintMethod(E.Code("ZPL"),),
+            E.LabelStockSize(E.Height("4"),E.Width("6"),),
+            E.LabelImageFormat(E.Code("ZPL"),),
+        ),
         Description="Description"
     )
     request.find("Shipment").extend(packages)
+
     return request
 
 def parse_xml_response_to_json(response, delivery_note):
@@ -145,15 +154,63 @@ def set_packages_details(shipment_result):
 
     return info
 
+# base64 bWFrYXJhbmQ=
+# def save_shipping_labels_to_file(dn, base64_label, tracking_id, public_path):
+def save_shipping_labels_to_file(dn, base64_label, tracking_id):
+    base_path = check_and_get_base_path();
+    zpl_label = base64_label.decode("base64")
+
+    zpl_file = "%s/zpl/%s-%s.zpl"%(base_path, dn, tracking_id)
+
+    with open(zpl_file, "w") as label:
+        label.write(zpl_label)
+
+    return zpl_to_png(zpl_file, dn, tracking_id, base_path);
+
+def zpl_to_png(zpl_path, dn, tracking_id, base_path):
+    import os
+    api_path = "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/"
+    png_path = "%s/png/%s-%s.png"%(base_path, dn, tracking_id)
+    filename = "%s-%s.png"%(dn, tracking_id)
+
+    os.system("curl --request POST %s --form file=@%s > %s"%(api_path, zpl_path, png_path))
+    return filename
+
+def check_and_get_base_path():
+    import os
+
+    public_path = os.path.join(frappe.local.site_path, "public","files")
+    cwd = "%s/%s"%(os.getcwd(),public_path.split("./")[1])
+    dir_path = "%s/labels"%(cwd)
+
+    # labels dir doesn't exsit, so create new dir
+    if not os.path.isdir(dir_path):
+        os.mkdir(dir_path)
+        os.mkdir("%s/zpl"%(dir_path))
+        os.mkdir("%s/png"%(dir_path))
+    else:
+        zpl_path = "%s/zpl"%dir_path
+        png_path = "%s/png"%dir_path
+
+        if not os.path.isdir(zpl_path):
+            os.mkdir(zpl_path)
+        elif not os.path.isdir(png_path):
+            os.mkdir(png_path)
+
+    return dir_path
+
 def save_tracking_number_and_shipping_labels(dn, shipment_info):
     for row in dn.packing_slip_details:
-        # shipping_label = "<div class='page-break' style='width:6.5in'><div class='row'><img src='data:image/gif;base64,%s'/></div></div>"
         info = shipment_info.get(row.idx)
         if info:
             row.tracking_id = info.get("tracking_id")
-            # row.shipping_label = "<img src='data:image/gif;base64,%s' style='margin-left: 0.2in;max-width: 6.5in;max-height: 4in;width: auto;height: auto;overflow: hidden'/>"%(info.get('label'))
-            # row.shipping_label = "<img src='data:image/gif;base64,%s' style='margin-left: 0.2in;max-width: 624px;max-height: 384px;width: 624px;height: 384px;overflow: hidden'/>"%(info.get('label'))
-            row.shipping_label = "<img src='data:image/gif;base64,%s' class='ups-label'/>"%(info.get('label'))
+            # row.shipping_label = "<img src='data:image/gif;base64,%s' class='ups-label'/>"%(info.get('label'))
+            # TODO configure path
+            row.label_path = save_shipping_labels_to_file(
+                                dn.name,
+                                info.get('label'),
+                                info.get("tracking_id")
+                            )
             row.tracking_status = "Labels Printed"
 
             update_packing_slip(row.packing_slip, info)
