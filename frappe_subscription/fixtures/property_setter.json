@@ -8013,19 +8013,6 @@
   "docstatus": 0, 
   "doctype": "Property Setter", 
   "doctype_or_field": "DocField", 
-  "field_name": "shipping_overhead", 
-  "modified": "2015-09-04 05:16:16.814747", 
-  "name": "Delivery Note-shipping_overhead-previous_field", 
-  "property": "previous_field", 
-  "property_type": "Data", 
-  "value": "packing_slip_details"
- }, 
- {
-  "default_value": null, 
-  "doc_type": "Delivery Note", 
-  "docstatus": 0, 
-  "doctype": "Property Setter", 
-  "doctype_or_field": "DocField", 
   "field_name": "carrier_shipping_rate", 
   "modified": "2015-09-04 05:16:17.347405", 
   "name": "Delivery Note-carrier_shipping_rate-previous_field", 
@@ -8240,5 +8227,18 @@
   "property": "previous_field", 
   "property_type": "Data", 
   "value": "tracking_id"
+ }, 
+ {
+  "default_value": null, 
+  "doc_type": "Delivery Note", 
+  "docstatus": 0, 
+  "doctype": "Property Setter", 
+  "doctype_or_field": "DocField", 
+  "field_name": "shipping_overhead", 
+  "modified": "2015-09-11 00:51:09.855998", 
+  "name": "Delivery Note-shipping_overhead-previous_field", 
+  "property": "previous_field", 
+  "property_type": "Data", 
+  "value": "packing_slip_details"
  }
 ]
