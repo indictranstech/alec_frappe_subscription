@@ -85,7 +85,7 @@ def get_ups_shipment_confirm_request(delivery_note, params):
         Helper.get_ship_from_address(params, ship_from_address_name),
         Helper.get_payment_info(AccountNumber=shipper_number),
         ShipmentConfirm.service_type(Code=service_code),
-        # TODO add label containers
+        # Labal specification container
         LabelSpecification = E.LabelSpecification(
             E.LabelPrintMethod(E.Code("ZPL"),),
             E.LabelStockSize(E.Height("4"),E.Width("6"),),
@@ -219,7 +219,7 @@ def save_tracking_number_and_shipping_labels(dn, shipment_info):
         if info:
             row.tracking_id = info.get("tracking_id")
             # row.shipping_label = "<img src='data:image/gif;base64,%s' class='ups-label'/>"%(info.get('label'))
-            # TODO configure path
+            # row.shipping_label = info.get('label') 
             row.label_path = save_shipping_labels_to_file(
                                 dn.name,
                                 info.get('label'),

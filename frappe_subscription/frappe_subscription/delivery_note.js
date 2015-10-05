@@ -164,8 +164,8 @@ cur_frm.cscript.carrier_shipping_rate = function(doc,cdt,cdn){
 }
 
 set_child_fields_to_readonly = function(val){
-    cur_frm.get_field("packing_slip_details").grid.docfields[5].read_only = val
-    cur_frm.get_field("packing_slip_details").grid.docfields[7].read_only = val
+    cur_frm.get_field("packing_slip_details").grid.docfields[6].read_only = val
+    cur_frm.get_field("packing_slip_details").grid.docfields[8].read_only = val
     cur_frm.set_df_property("carrier_shipping_rate","read_only", val)
 }
 

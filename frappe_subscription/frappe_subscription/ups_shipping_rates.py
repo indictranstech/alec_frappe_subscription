@@ -8,13 +8,17 @@ from ups.base import PyUPSException
 from ups.rating_package import RatingService
 from frappe_subscription.frappe_subscription.ups_mapper import ups_packages
 from frappe_subscription.frappe_subscription.ups_helper import UPSHelper as Helper
+from erpnext.stock.doctype.delivery_note.delivery_note import DeliveryNote
 
 @frappe.whitelist()
 def get_shipping_rates(delivery_note, add_shipping_overhead=False):
     """get packages Information from delivery note, create the xml request to fetch the ups rates"""
     try:
         # dn = frappe.get_doc("Delivery Note",delivery_note)
-        dn = frappe.get_doc(json.loads(delivery_note))
+        if isinstance(delivery_note, DeliveryNote):
+            dn = delivery_note
+        else:
+            dn = frappe.get_doc(json.loads(delivery_note))
 
         if dn.dn_status in ["Draft", "Partialy Packed"]:
             frappe.throw("First create the packing slips")
@@ -158,7 +162,7 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
         dn.save(ignore_permissions=True)
         return "True"
     else:
-        rates = get_shipping_rates(dn_name, True)
+        rates = get_shipping_rates(dn, True)
         if service_code and rates.get(service_code) == "03":
             return "True"
         else:

@@ -17,6 +17,7 @@ def on_delivery_note_cancel(doc, method):
         # delete the packing slips
         ps_to_cancel = []
         ch_to_remove = []
+        labels_to_remove = []
         bin_items = {}
 
         for ps_details in doc.packing_slip_details:
@@ -26,14 +27,38 @@ def on_delivery_note_cancel(doc, method):
                 ps_details.item_code:bin_qty
             })
             ch_to_remove.append(ps_details)
+            if ps_details.label_path and not doc.is_manual_shipping:
+                labels_to_remove.append(ps_details.label_path)
 
         [doc.remove(ch) for ch in ch_to_remove]
         remove_shipping_overhead(doc)
         [frappe.delete_doc("Packing Slip Details",ch.name, ignore_permissions=True) for ch in ch_to_remove]
         [frappe.delete_doc("Packing Slip", ps_name, ignore_permissions=True) for ps_name in ps_to_cancel]
+        if labels_to_remove: remove_png_and_zpl_labels(labels_to_remove)
 
         doc.dn_status = "Draft"
         doc.boxes_stock_entry = ""
+        doc.is_manual_shipping = 0
+        doc.carrier_shipping_rate = ""
+
+def remove_png_and_zpl_labels(labels):
+    # remove .png and .zpl shipping labels from system
+    import os
+
+    public_path = os.path.join(frappe.local.site_path, "public","files")
+    dir_path = os.path.join(os.getcwd(), public_path.split("./")[1], "labels")
+
+    if os.path.isdir(dir_path):
+        for label in labels:
+            zpl_path = os.path.join(dir_path, "zpl")
+            png_path = os.path.join(dir_path, "png")
+
+            if os.path.isdir(zpl_path):
+                zpl_path = os.path.join(zpl_path, "%s.zpl"%(label.split(".")[0]))
+                os.remove(zpl_path)
+            if os.path.isdir(png_path):
+                png_path = os.path.join(png_path, label)
+                os.remove(png_path)
 
 def on_delivery_note_submit(doc, method):
     # check packing slips
@@ -45,7 +70,6 @@ def on_delivery_note_submit(doc, method):
         frappe.throw("Packing Slip are not created for all items. Please create packing slips first")
 
     if  doc.is_manual_shipping == 0:
-        #TODO remove if condition
         condition = is_shipping_overhead_available(doc)
 
         if (doc.dn_status == "Packing Slips Created") or (not condition):
