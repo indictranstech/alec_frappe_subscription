@@ -174,7 +174,21 @@ def zpl_to_png(zpl_path, dn, tracking_id, base_path):
     filename = "%s-%s.png"%(dn, tracking_id)
 
     os.system("curl --request POST %s --form file=@%s > %s"%(api_path, zpl_path, png_path))
+
+    set_aspect_ratio(png_path)
+
     return filename
+
+def set_aspect_ratio(img_path):
+    import PIL
+    from PIL import Image
+    #size in pixel
+    basewidth = 384
+    img = Image.open(img_path)
+    wpercent = (basewidth/float(img.size[0]))
+    hsize = int((float(img.size[1])*float(wpercent)))
+    img = img.resize((basewidth,hsize), PIL.Image.ANTIALIAS)
+    img.save(img_path)
 
 def check_and_get_base_path():
     import os
