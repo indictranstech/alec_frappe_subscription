@@ -187,7 +187,7 @@ def set_aspect_ratio(img_path):
     img = Image.open(img_path)
     wpercent = (basewidth/float(img.size[0]))
     hsize = int((float(img.size[1])*float(wpercent)))
-    img = img.resize((basewidth,hsize), PIL.Image.ANTIALIAS)
+    img = img.rotate(180, expand=1).resize((basewidth,hsize), PIL.Image.ANTIALIAS)
     img.save(img_path)
 
 def check_and_get_base_path():
@@ -219,7 +219,7 @@ def save_tracking_number_and_shipping_labels(dn, shipment_info):
         if info:
             row.tracking_id = info.get("tracking_id")
             # row.shipping_label = "<img src='data:image/gif;base64,%s' class='ups-label'/>"%(info.get('label'))
-            # row.shipping_label = info.get('label') 
+            # row.shipping_label = info.get('label')
             row.label_path = save_shipping_labels_to_file(
                                 dn.name,
                                 info.get('label'),
@@ -235,9 +235,10 @@ def save_tracking_number_and_shipping_labels(dn, shipment_info):
     # dn.save(ignore_permissions=True)
 
 def update_packing_slip(packing_slip, info):
-    query = """UPDATE `tabPacking Slip` SET tracking_id='%s', tracking_status='%s',
-            track_status='Auto' WHERE name='%s'"""%(info.get("tracking_id"),
-            "Labels Printed", packing_slip)
+    from frappe.utils import now
+    query = """UPDATE `tabPacking Slip` SET modified='%s', tracking_id='%s',
+            tracking_status='%s',track_status='Auto' WHERE name='%s'"""%(now(),
+            info.get("tracking_id"), "Labels Printed", packing_slip)
     frappe.db.sql(query)
 
 def create_boxes_stock_entry(delivery_note):
