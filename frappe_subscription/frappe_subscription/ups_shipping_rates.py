@@ -130,9 +130,13 @@ def add_shipping_charges(dn_name=None, service_code=None, shipping_rate=None):
             shipping_charge = rates.get(service_code) or 0.0
 
         defaults = frappe.db.get_values("Shipping Configuration","Shipping Configuration",
-                                        ["default_account", "cost_center", "shipping_overhead"],
+                                        ["default_account", "cost_center", "shipping_overhead", "minimum_shipping_charge"],
                                         as_dict=True)[0]
         total_charge = shipping_charge + (shipping_charge * (flt(defaults.get("shipping_overhead"))/100))
+
+        #add in $15 minimum shipping charge
+        if total_charge < defaults.get("minimum_shipping_charge"):
+            total_charge = defaults.get("minimum_shipping_charge")
 
         for row in dn.taxes:
             condition = (row.charge_type == "Actual" and row.description == "Shipping Charges"
