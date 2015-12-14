@@ -154,8 +154,8 @@ def validate_manual_shipping_rates(doc):
                     frappe.throw("Shipping Charges and Total Shipping Rates does not match")
             else:
                 frappe.throw("Shipping Charges is not added ..")
-        else:
-            frappe.throw("Carrier Shipping Rate can not be Zero")
+        # else:
+        #    frappe.throw("Carrier Shipping Rate can not be Zero")
 
 def validate_update_packing_slip_details(doc):
     condition = is_shipping_overhead_available(doc)
