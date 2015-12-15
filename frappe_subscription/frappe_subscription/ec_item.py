@@ -6,9 +6,8 @@ def validate_dimensions(doc, method):
     depth = doc.length
     weight = doc.weight_
 
-    if (height <= 0) or (width <= 0) or (depth <= 0) or (weight <= 0): 
-        if (height is not None) and (width is not None) and (depth is not None) and (weight is not None):
-            frappe.throw("Item's Dimension details should be greater than zero")
+    if (height < 0) or (width < 0) or (depth < 0) or (weight < 0): 
+            frappe.throw("Item's Dimension details cannot be negative.")
 
     # check the items Dimensions and box Dimensions
     if doc.unique_box_for_packing:
