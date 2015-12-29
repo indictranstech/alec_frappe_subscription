@@ -163,10 +163,12 @@ def validate_update_packing_slip_details(doc):
     if doc.carrier_shipping_rate and condition:
         # Update tracking id and tracking status on packing slip
         for ps_details in doc.packing_slip_details:
-            if ps_details.tracking_id == "NA":
-                frappe.throw("Tracking ID can not be set to 'NA', Please update the tracking ID")
-            else:
-                update_packing_slip(ps_details.tracking_id, ps_details.tracking_status, ps_details.packing_slip)
+
+        #remove tracking ID until Indictrans does ZPL printing/ we're out of sandbox
+#            if ps_details.tracking_id == "NA":
+ #               frappe.throw("Tracking ID can not be set to 'NA', Please update the tracking ID")
+  #          else:
+        update_packing_slip(ps_details.tracking_id, ps_details.tracking_status, ps_details.packing_slip)
     elif doc.is_manual_shipping == 0:
         frappe.throw("First Add the Shipping Charges")
 
