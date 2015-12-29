@@ -204,7 +204,7 @@
   "modified": "2015-07-22 02:39:06.475443", 
   "name": "Customer-status", 
   "no_copy": 0, 
-  "options": "Open - Hot\nOpen - Cold\nClosed", 
+  "options": "Class A - Loyal\nClass B - Active\nClass C - Needs Work\nClosed", 
   "permlevel": 0, 
   "precision": null, 
   "print_hide": 0, 
