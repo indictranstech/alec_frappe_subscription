@@ -10,6 +10,12 @@ frappe.ui.form.on("Item", "item_group", function(frm){
         cur_frm.set_df_property("box", "reqd", 0);
         cur_frm.refresh_fields(["unique_box_for_packing","box"]);
     }
+    // else{
+    //     cur_frm.doc.height = 0;
+    //     cur_frm.doc.width = 0;
+    //     cur_frm.doc.length = 0;
+    // }
+    // cur_frm.refresh_fields(["height", "width", "length"])
 });
 
 cur_frm.fields_dict['box'].get_query = function(doc) {
@@ -19,3 +25,22 @@ cur_frm.fields_dict['box'].get_query = function(doc) {
         }
     }
 }
+
+frappe.ui.form.on("UOM Conversion Detail", "default_shipping_uom", function(frm, cdt, cdn){
+    var me = this;
+    doc = locals[cdt][cdn];
+    is_checked = doc.default_shipping_uom;
+
+    this.count = doc.default_shipping_uom;
+    $.each(cur_frm.doc.uoms, function(idx, item){
+        if(item.name != cdn && item.default_shipping_uom == 1)
+            me.count += 1
+    })
+
+    if(this.count > 1){
+        frappe.msgprint("Only one UOM Conversion can be set as default");
+        doc.default_shipping_uom = 0;
+    }
+
+    cur_frm.refresh_field("uoms");
+})
