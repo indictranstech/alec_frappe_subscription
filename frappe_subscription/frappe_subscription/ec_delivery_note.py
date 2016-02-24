@@ -168,7 +168,7 @@ def validate_update_packing_slip_details(doc):
 #            if ps_details.tracking_id == "NA":
  #               frappe.throw("Tracking ID can not be set to 'NA', Please update the tracking ID")
   #          else:
-        update_packing_slip(ps_details.tracking_id, ps_details.tracking_status, ps_details.packing_slip)
+            update_packing_slip(ps_details.tracking_id, ps_details.tracking_status, ps_details.packing_slip)
     elif doc.is_manual_shipping == 0:
         frappe.throw("First Add the Shipping Charges")
 

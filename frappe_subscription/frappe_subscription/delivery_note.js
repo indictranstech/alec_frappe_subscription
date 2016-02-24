@@ -113,6 +113,25 @@ frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
         frappe.msgprint("Delivery Note is in Freezed State can not add new Item !!");
         cur_frm.fields_dict["items"].grid.grid_rows[cur_frm.doc.items.length - 1].remove();
     }
+    else{
+        // fetch custom UOM
+        var me = this
+        this.item = locals[cdt][cdn]
+        frappe.call({
+            method: "frappe_subscription.frappe_subscription.ec_item.get_default_uom",
+            args: {
+                item_code:item.item_code,
+            },
+            callback: function(r){
+                item.custom_uom = r.message.uom;
+                item.uom_conversion_rate = r.message.conversion_factor;
+                window.setTimeout(function(){
+                    me.item.custom_qty = calculate_custom_qty(me.item.qty, me.item.uom_conversion_rate);
+                    cur_frm.refresh_fields();
+                }, 300)
+            }
+        });
+    }
 });
 
 frappe.ui.form.on("Delivery Note Item", "items_remove", function(doc, cdt, cdn) {
@@ -305,3 +324,40 @@ frappe.UPSShippingRates = Class.extend({
         });
     },
 });
+
+cur_frm.fields_dict['items'].grid.get_field("custom_uom").get_query = function(doc, cdt, cdn) {
+    item = locals[cdt][cdn]
+    return {
+        query: "frappe_subscription.frappe_subscription.ec_item.custom_uom_query",
+        filters: {
+            item_code: item.item_code
+        }
+    }
+}
+
+frappe.ui.form.on("Delivery Note Item", "custom_uom", function(frm, cdt, cdn){
+    // set custom qty
+    item = locals[cdt][cdn]
+    frappe.call({
+        method: "frappe_subscription.frappe_subscription.ec_item.get_conversion_factor",
+        args: {
+            item_code:item.item_code,
+            uom: item.custom_uom
+        },
+        callback: function(r){
+            item.custom_qty = calculate_custom_qty(item.qty, r.message.conversion_factor);
+            cur_frm.refresh_fields();
+        }
+    });
+})
+
+frappe.ui.form.on("Delivery Note Item", "qty", function(frm, cdt, cdn){
+    // set custom qty
+    item = locals[cdt][cdn]
+    item.custom_qty = calculate_custom_qty(item.qty, item.conversion_factor);
+    cur_frm.refresh_fields();
+});
+
+calculate_custom_qty = function(qty, conversion_factor){
+    return Math.ceil(cint(qty) / cint(conversion_factor))
+}
