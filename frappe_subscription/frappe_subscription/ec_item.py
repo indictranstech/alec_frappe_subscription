@@ -1,6 +1,7 @@
 import frappe
 
 def validate(doc, method):
+    # TODO unique box reqd and uom is box ?
     validate_uom_conversions(doc)
     validate_dimensions(doc)
 
@@ -13,35 +14,13 @@ def validate_uom_conversions(doc):
     if doc.item_group == "Boxes" and "Nos" not in map(lambda item: item.uom, doc.custom_uoms):
         frappe.throw("Boxes should always have the Nos UOM")
 
-
-# def validate_dimensions(doc):
-#     height = doc.height
-#     width = doc.width
-#     depth = doc.length
-#     weight = doc.weight_
-
-#     if (height < 0) or (width < 0) or (depth < 0) or (weight < 0): 
-#             frappe.throw("Item's Dimension details cannot be negative.")
-
-#     # check the items Dimensions and box Dimensions
-
-#         box = frappe.get_doc("Item", doc.box)
-#         box_height = box.height
-#         box_width = box.width
-#         box_depth = box.length
-#         box_weight = box.weight_
-
-#         if (box_height < height) and (box_width < width) and (box_depth < depth):
-#             frappe.throw("%s can not be fitted in selected Box"%doc.item_code)
-#         elif box_weight < weight:
-#             frappe.throw("Item weight is greater than Box weight Limit")
-#     else:
-#         doc.box = ""
-
 def validate_dimensions(doc):
     weight = doc.weight_
     box = None
     box_uoms = None
+    box_height = 0
+    box_width = 0
+    box_depth = 0
 
 
     if weight < 0:
@@ -51,8 +30,14 @@ def validate_dimensions(doc):
         box = frappe.get_doc("Item", doc.box)
         box_uoms = box.custom_uoms
 
-        if box_weight < weight:
+        if box.weight_ < weight:
             frappe.throw("Item weight is greater than Box weight Limit")
+
+        for rec in box_uoms:
+            if rec.uom == "Nos":
+                box_height = rec.height
+                box_width = rec.width
+                box_depth = rec.length
 
     for item in doc.custom_uoms:
         height = item.height
@@ -64,11 +49,6 @@ def validate_dimensions(doc):
 
         # check the items Dimensions and box Dimensions
         if doc.unique_box_for_packing:
-            box_height = box.height
-            box_width = box.width
-            box_depth = box.length
-            box_weight = box.weight_
-
             if (box_height < height) and (box_width < width) and (box_depth < depth):
                 frappe.throw("%s can not be fitted in selected Box if we use %s UOM"%(doc.item_code, item.uom))
 
