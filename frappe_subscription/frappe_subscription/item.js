@@ -26,13 +26,13 @@ cur_frm.fields_dict['box'].get_query = function(doc) {
     }
 }
 
-frappe.ui.form.on("UOM Conversion Detail", "default_shipping_uom", function(frm, cdt, cdn){
+frappe.ui.form.on("Custom UOM Conversion Details", "default_shipping_uom", function(frm, cdt, cdn){
     var me = this;
     doc = locals[cdt][cdn];
     is_checked = doc.default_shipping_uom;
 
     this.count = doc.default_shipping_uom;
-    $.each(cur_frm.doc.uoms, function(idx, item){
+    $.each(cur_frm.doc.custom_uoms, function(idx, item){
         if(item.name != cdn && item.default_shipping_uom == 1)
             me.count += 1
     })
@@ -42,5 +42,5 @@ frappe.ui.form.on("UOM Conversion Detail", "default_shipping_uom", function(frm,
         doc.default_shipping_uom = 0;
     }
 
-    cur_frm.refresh_field("uoms");
+    cur_frm.refresh_field("custom_uoms");
 })

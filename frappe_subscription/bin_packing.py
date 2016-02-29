@@ -300,12 +300,13 @@ def get_bin_packing_request(bins, items, credentials, params):
         "params": params
     }
 
-def get_bin_packing_response(request):
+def get_bin_packing_response(request, api_xpath="/packer/packIntoMany"):
     connection = httplib.HTTPConnection(host='eu.api.3dbinpacking.com', port=80)
     req_params =  urllib.urlencode({'query':json.dumps(request)})
     headers = {"Content-type": "application/x-www-form-urlencoded",
             "Accept": "text/plain"}
-    connection.request("POST", "/packer/packIntoMany", req_params, headers)
+    # connection.request("POST", "/packer/packIntoMany", req_params, headers)
+    connection.request("POST", api_xpath, req_params, headers)
     content = connection.getresponse().read()
     connection.close()
 
@@ -315,5 +316,5 @@ def get_bin_packing_response(request):
     else:
         errors = response.get("response").get("errors")
         # msg = "Packing Slip can not be created\n%s"%("\n".join(errors))
-        msg = "Packing Slip can not be created\n"
+        msg = "3D Bin Packing Alogorith Error.\n"
         frappe.throw(msg)
