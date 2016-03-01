@@ -4,11 +4,8 @@ def validate(doc, method):
     # TODO unique box reqd and uom is box ?
     validate_uom_conversions(doc)
     validate_dimensions(doc)
-    default_uom = [item.uom for item in doc.custom_uoms if item.default_shipping_uom]
-    if default_uom and default_uom[0] == "Box":
-        # check if number of items (qty > conversion factor) fits in Box dimentions
+    if all([True for item in doc.custom_uoms if item.uom == "Box"] or [False]):
         validate_item_packing_qty(doc)
-
 
 def validate_uom_conversions(doc):
     count = 0
@@ -16,71 +13,103 @@ def validate_uom_conversions(doc):
     if not count:
         frappe.throw("Please first select the default Custom                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    UOM Conversion Details")
 
-    if doc.item_group == "Boxes" and "Nos" not in map(lambda item: item.uom, doc.custom_uoms):
+    uom_list = map(lambda item: item.uom, doc.custom_uoms)
+    if doc.item_group == "Boxes" and "Nos" not in uom_list:
         frappe.throw("Boxes should always have the Nos UOM")
+    elif doc.item_group == "Boxes" and "Box" in uom_list:
+        frappe.throw("Box Item can have Box UOM")
 
 def validate_dimensions(doc):
-    weight = doc.weight_
     box = None
     box_uoms = None
     box_height = 0
     box_width = 0
     box_depth = 0
 
-
-    if weight < 0:
-        frappe.throw("Item's weight cannot be negative.")
-
     if doc.unique_box_for_packing:
-        box = frappe.get_doc("Item", doc.box)
-        box_uoms = box.custom_uoms
-
-        if box.weight_ < weight:
-            frappe.throw("Item weight is greater than Box weight Limit")
-
-        for rec in box_uoms:
-            if rec.uom == "Nos":
-                box_height = rec.height
-                box_width = rec.width
-                box_depth = rec.length
+        # get box's dimensions as item dimension
+        box = frappe.db.get_value("Custom UOM Conversion Details", {
+                    "parent": doc.box,
+                    "uom": "Nos"
+                }, ["height", "weight", "width", "length", "conversion_factor"], as_dict=True)
+        if box:
+            box_weight = box.get("weight")
+            box_height = box.get("height")
+            box_width = box.get("width")
+            box_depth = box.get("length")
+        else:
+            frappe.throw("Invalid dimensions for {}".format(doc.box))
+    else:
+        box = [box for box in custom_uoms if box.uom=="Box"] or None
+        if box and box[0]:
+            box_weight = box[0].weight
+            box_height = box[0].height
+            box_width = box[0].width
+            box_depth = box[0].length
 
     for item in doc.custom_uoms:
         height = item.height
         width = item.width
         depth = item.length
+        weight = item.weight
 
-        if (height < 0) or (width < 0) or (depth < 0):
+        if any([height < 0, width < 0, depth < 0, weight < 0]):
             frappe.throw("Item's Dimension details cannot be negative.")
 
-        # check the items Dimensions and box Dimensions
-        if doc.unique_box_for_packing:
-            if (box_height < height) and (box_width < width) and (box_depth < depth):
+        if item.uom == "Nos" and box:
+            if any([box_height < height, box_width < width, box_depth < depth, box_weight < weight]):
                 frappe.throw("%s can not be fitted in selected Box if we use %s UOM"%(doc.item_code, item.uom))
-
-        elif doc.box != "":
-            doc.box = ""
+            elif item.conversion_factor != 1:
+                frappe.throw("Conversion factor should be 1 for Nos UOM")
+        elif item.uom == "Box" and box:
+            if any([box_height > height, box_width > width, box_depth > depth, box_weight > weight]):
+                frappe.throw("Dimensions for the %s UOM should be greater than the %s's Dimensions"%(item.uom, doc.box))
+            elif item.conversion_factor <= 0:
+                frappe.throw("Invalide Conversion factor")
 
 def validate_item_packing_qty(doc):
-    from frappe_subscription.bin_packing import params, get_bin_packing_credentials, get_bin_packing_request, get_bin_packing_response
+    # check if number of items (qty > conversion factor) fits in Box dimentions
+
+    from frappe_subscription.bin_packing import (params, get_bin_packing_credentials,
+                get_bin_packing_request, get_bin_packing_response)
 
     bins = {}
     items = {}
     qty = 0
-    cdn = None
+    box = None
+
+    if doc.unique_box_for_packing:
+        # get box's dimensions as item dimension
+        box = frappe.db.get_value("Custom UOM Conversion Details", {
+                    "parent": doc.box,
+                    "uom": "Nos"
+                }, ["height", "weight", "width", "length", "conversion_factor"], as_dict=True)
+        if not box:
+            frappe.throw("Invalid dimensions for {}".format(doc.box))
 
     for item in doc.custom_uoms:
         if item.uom == "Nos":
-            if item.height and item.width and item.length and item.weight:
+            if doc.unique_box_for_packing:
+                height = box.get("height")
+                weight = box.get("weight")
+                length = box.get("length")
+                width = box.get("width")
+            else:
+                height = item.height
+                weight = item.weight
+                length = item.length
+                width = item.width    
+
+            if height and width and length and weight:
                 items = {
-                    "id":doc.item_code, "h":item.height,
-                    "w":item.width, "d":item.length,
-                    "wg":item.weight
+                    "id":doc.item_code, "h":height,
+                    "w":width, "d":length,
+                    "wg":weight
                 }
             else:
                 frappe.throw("Please set the valid dimension details for Nos UOM")
         elif item.uom == "Box":
             qty = item.conversion_factor
-            cdn = item.name
             box_uom = item
             if item.height and item.width and item.length and item.weight:
                 bins = {
@@ -91,7 +120,7 @@ def validate_item_packing_qty(doc):
             else:
                 frappe.throw("Please set the valid dimension details for Nos UOM")
 
-    if all([item, bins, qty, cdn]):
+    if all([item, bins, qty]):
         items.update({ "q": qty })
         credentials = get_bin_packing_credentials()
         request = get_bin_packing_request([bins],[items],credentials,params)
@@ -99,9 +128,8 @@ def validate_item_packing_qty(doc):
         stat = get_bin_packing_stat(response.get("response")) or {}
         box_uom.conversion_factor = stat.get("qty_packed") or 0
         box_uom.bin_stat = stat.get("html") or ""
-        # frappe.db.set_value("Custom UOM Conversion Details", cdn, "bin_stat", )
     else:
-        frappe.errprint("Error occured while checking packing information, Please contact Administrator")
+        frappe.throw("Error occured while checking packing information, Please contact Administrator")
     
 def get_bin_packing_stat(response):
     qty_not_packed = 0
@@ -123,8 +151,6 @@ def get_bin_packing_stat(response):
     qty_packed = len(packed_bin.get("items")) or 0
     space_used = bin_data.get("used_space")
     weight_used = bin_data.get("used_weight")
-    # html = prepare_bin_stat_html(qty_not_packed=qty_not_packed, qty_packed=qty_packed, 
-    #     weight_used=weight_used, space_used=space_used, img=packed_bin.get("image_complete"))
     html = frappe.render_template("templates/pages/bin_packing_stat.html",{
                 "qty_packed": qty_packed,
                 "qty_not_packed": qty_not_packed,
@@ -133,7 +159,6 @@ def get_bin_packing_stat(response):
                 "img": packed_bin.get("image_complete")
             }, is_path=True)
 
-    frappe.errprint(html)
     return {
         "qty_packed": qty_packed,
         "html": html
