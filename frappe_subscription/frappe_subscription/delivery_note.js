@@ -222,44 +222,44 @@ var service = ""
 
 frappe.UPSShippingRates = Class.extend({
     // UPS Other Services Rates POP-UP
-	init: function(rates) {
-		this.make(rates);
-	},
-	make: function(rates) {
-		shipping_rates = []
+    init: function(rates) {
+        this.make(rates);
+    },
+    make: function(rates) {
+        shipping_rates = []
 
-		var me = this;
-		me.pop_up = this.render_pop_up_dialog(cur_frm.doc,me);
+        var me = this;
+        me.pop_up = this.render_pop_up_dialog(cur_frm.doc,me);
 
-		this.append_pop_up_dialog_body(me.pop_up);
-		this.append_shipping_charges(rates,cur_frm.doc);
+        this.append_pop_up_dialog_body(me.pop_up);
+        this.append_shipping_charges(rates,cur_frm.doc);
 
-		me.pop_up.show()
-	},
+        me.pop_up.show()
+    },
     render_pop_up_dialog: function(doc, me){
-		return new frappe.ui.Dialog({
-			title: "Select Carrier Service",
-			no_submit_on_enter: true,
+        return new frappe.ui.Dialog({
+            title: "Select Carrier Service",
+            no_submit_on_enter: true,
             fields: [
-				{label:__("Shipping Charges"), fieldtype:"HTML", fieldname:"charges"},
-			],
+                {label:__("Shipping Charges"), fieldtype:"HTML", fieldname:"charges"},
+            ],
 
-			primary_action_label: "Submit",
-			primary_action: function() {
-				// Update Clearance Date of the checked vouchers
-				_me = this;
+            primary_action_label: "Submit",
+            primary_action: function() {
+                // Update Clearance Date of the checked vouchers
+                _me = this;
                 me.pop_up.hide();
                 set_up_taxes_and_charges(service, 0);
             }
         });
     },
     append_pop_up_dialog_body: function(pop_up){
-		this.fd = pop_up.fields_dict;
-		this.pop_up_body = $("<div id='container' style='overflow: auto;max-height: 300px;'>\
+        this.fd = pop_up.fields_dict;
+        this.pop_up_body = $("<div id='container' style='overflow: auto;max-height: 300px;'>\
                             <table class='table table-bordered table-hover' id='entries'>\
                             <thead><th></th><th><b>Service Code</b></th><th><b>Service</b></th>\
                             <th><b>Charges</b></th></thead><tbody></tbody></table></div>").appendTo($(this.fd.charges.wrapper));
-	},
+    },
     append_shipping_charges: function(ups_rates,doc){
         var rates = ups_rates
         service = rates["service_used"];
