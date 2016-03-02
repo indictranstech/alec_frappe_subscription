@@ -94,9 +94,7 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
         # get custom uom
         custom_uom = frappe.db.get_value("Delivery Note Item", { "parent": dn, "item_code":item_code }, "custom_uom")
 
-    item_details = frappe.db.get_values("Item",item_code,
-                                        ["item_group", "unique_box_for_packing", "weight_"],
-                                        as_dict=True)
+    item_details = frappe.db.get_values("Item",item_code, ["item_group", "unique_box_for_packing"], as_dict=True)
     if not item_details:
         frappe.throw("Invalid Item")
     else:
@@ -105,7 +103,7 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
         uses_unique_packing_box = item_details.get("unique_box_for_packing") or 0
 
         dimensions = frappe.db.get_value("Custom UOM Conversion Details", 
-            {"parent":item_code, "uom":custom_uom}, ["height", "width", "length"], as_dict=True)
+            {"parent":item_code, "uom":custom_uom}, ["height", "width", "length", "weight"], as_dict=True)
 
         if not dimensions:
             frappe.throw("Item dimensions not found in Cusomt UOM Conversion Details")
@@ -119,8 +117,7 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
             height = dimensions.get("height") or 0
             width = dimensions.get("width") or 0
             depth = dimensions.get("length") or 0
-            weight = item_details.get("weight_") or 0
-
+            weight = dimensions.get("weight") or 0
             if height and width and depth and weight:
                 to_dict = {
                     "w": width, "h": height,
@@ -140,13 +137,13 @@ def get_unique_box_items_to_pack(dn, to_pack):
         for item in dn.items:
             if item.item_code not in to_pack:
                 # check if item requires unique Box
-                if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing"):
+                if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing") and item.custom_uom == "Nos":
                     item_details = get_item_with_unique_box_details(item.item_code, item.qty)
                     [items_with_unique_boxes.append(item_details) for i in xrange(int(item.qty))]
     elif dn.dn_status == "Partialy Packed":
         items = json.loads(dn.not_packed_items)
         for item_code, qty in items.iteritems():
-            if frappe.db.get_value("Item", item_code,"unique_box_for_packing"):
+            if frappe.db.get_value("Item", item_code,"unique_box_for_packing") and item.custom_uom == "Nos":
                 item_details = get_item_with_unique_box_details(item_code, qty)
                 [items_with_unique_boxes.append(item_details) for i in xrange(int(qty))]
     return items_with_unique_boxes
@@ -243,7 +240,7 @@ def get_bin_details():
 
     bins = []
     query = """SELECT
-                i.name, u.width, u.height, u.length, i.weight_
+                i.name, u.width, u.height, u.length, u.weight
             FROM
                 `tabItem` i,
                 `tabCustom UOM Conversion Details` u,
@@ -263,7 +260,7 @@ def get_bin_details():
         height = item.get('height')
         width = item.get("width")
         depth = item.get("length")
-        weight = item.get("weight_")
+        weight = item.get("weight")
 
         if height and width and depth and weight:
             bins.append({

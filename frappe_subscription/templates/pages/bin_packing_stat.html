@@ -1,43 +1,29 @@
-<!-- <div class="row">
-	<div class="col-xs-06">
-		<div class="row">
-			<div class="col-xs-05">Qty Packed</div>
-			<div class="col-xs-07">{{ qty_packed }}</div>
-		</div>
-		<div class="row">
-			<div class="col-xs-05">Qty Not Packed</div>
-			<div class="col-xs-07">{{ qty_not_packed }}</div>
-		</div>
-		<div class="row">
-			<div class="col-xs-05">Space Used</div>
-			<div class="col-xs-07">{{ space_used }}</div>
-		</div>
-		<div class="row">
-			<div class="col-xs-05">Weight Used</div>
-			<div class="col-xs-07">{{ weight_used }}</div>
-		</div>
-	</div>
-	<div class="col-xs-06">
-		<img src='data:image/png;base64,{{ img }}'/>
-	</div>
-</div> -->
-
 <table class="table table-bordered" style="font-size: 12px;">
 	<tr>
 		<td align="right">Qty Packed</td>
 		<td align="right"><b>{{ qty_packed }} Nos</b></td>
 		<td align="center" rowspan="4" style="vertical-align: middle;"><img src='data:image/png;base64,{{ img }}'/></td>
+		<td align="center" rowspan="2" style="vertical-align: middle;">Box</td>
+		<td align="right">Dimensions</td>
+		<td align="right"><b>{{ box_dimensions }} in</b></td>
 	</tr>
 	<tr>
 		<td align="right">Qty Not Packed</td>
 		<td align="right"><b>{{ qty_not_packed }} Nos</b></td>
+		<td align="right">Weight</td>
+		<td align="right"><b>{{ box_weight }} lbs</b></td>
 	</tr>
 	<tr>
 		<td align="right">Space Used</td>
 		<td align="right"><b>{{ space_used }}%</b></td>
+		<td align="center" rowspan="2" style="vertical-align: middle;">Item</td>
+		<td align="right">Dimensions</td>
+		<td align="right"><b>{{ item_dimensions }} in</b></td>
 	</tr>
 	<tr>
 		<td align="right">Weight Used</td>
 		<td align="right"><b>{{ weight_used }}%</b></td>
+		<td align="right">Weight</td>
+		<td align="right"><b>{{ item_weight }} lbs</b></td>
 	</tr>
 </table>

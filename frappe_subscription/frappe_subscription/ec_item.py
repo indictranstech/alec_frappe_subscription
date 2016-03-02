@@ -1,4 +1,5 @@
 import frappe
+from frappe.utils import flt
 
 def validate(doc, method):
     # TODO unique box reqd and uom is box ?
@@ -40,7 +41,7 @@ def validate_dimensions(doc):
         else:
             frappe.throw("Invalid dimensions for {}".format(doc.box))
     else:
-        box = [box for box in custom_uoms if box.uom=="Box"] or None
+        box = [box for box in doc.custom_uoms if box.uom=="Box"] or None
         if box and box[0]:
             box_weight = box[0].weight
             box_height = box[0].height
@@ -74,7 +75,11 @@ def validate_item_packing_qty(doc):
                 get_bin_packing_request, get_bin_packing_response)
 
     bins = {}
+    bin_dimension = ""
+    bin_weight = 0
     items = {}
+    item_dimension = ""
+    item_weight = 0
     qty = 0
     box = None
 
@@ -106,6 +111,8 @@ def validate_item_packing_qty(doc):
                     "w":width, "d":length,
                     "wg":weight
                 }
+                item_dimension = "{} x {} x {}".format(flt(width, 2), flt(height, 2), flt(length, 2))
+                item_weight = flt(weight, 2)
             else:
                 frappe.throw("Please set the valid dimension details for Nos UOM")
         elif item.uom == "Box":
@@ -117,6 +124,8 @@ def validate_item_packing_qty(doc):
                     "w":item.width, "d":item.length,
                     "max_wg":item.weight
                 }
+                bin_dimension = "{} x {} x {}".format(flt(item.width, 2), flt(item.height, 2), flt(item.length, 2))
+                bin_weight = flt(item.weight, 2)
             else:
                 frappe.throw("Please set the valid dimension details for Nos UOM")
 
@@ -125,13 +134,13 @@ def validate_item_packing_qty(doc):
         credentials = get_bin_packing_credentials()
         request = get_bin_packing_request([bins],[items],credentials,params)
         response = get_bin_packing_response(request, api_xpath="/packer/pack")
-        stat = get_bin_packing_stat(response.get("response")) or {}
+        stat = get_bin_packing_stat(response.get("response"), bin_dimension, bin_weight, item_dimension, item_weight) or {}
         box_uom.conversion_factor = stat.get("qty_packed") or 0
         box_uom.bin_stat = stat.get("html") or ""
     else:
         frappe.throw("Error occured while checking packing information, Please contact Administrator")
     
-def get_bin_packing_stat(response):
+def get_bin_packing_stat(response, box_dimensions, box_weight, item_dimensions, item_weight):
     qty_not_packed = 0
     space_used = 0
     weight_used = 0
@@ -156,7 +165,11 @@ def get_bin_packing_stat(response):
                 "qty_not_packed": qty_not_packed,
                 "space_used": space_used,
                 "weight_used": weight_used,
-                "img": packed_bin.get("image_complete")
+                "img": packed_bin.get("image_complete"),
+                "box_dimensions": box_dimensions,
+                "box_weight": box_weight,
+                "item_dimensions": item_dimensions,
+                "item_weight": item_weight,
             }, is_path=True)
 
     return {
