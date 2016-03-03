@@ -127,6 +127,7 @@ frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
                 item.uom_conversion_rate = r.message.conversion_factor;
                 window.setTimeout(function(){
                     me.item.custom_qty = calculate_custom_qty(me.item.qty, me.item.uom_conversion_rate);
+                    item.qty_mapping = get_qty_wise_mapping_for_box(item.qty, item.custom_qty, item.uom_conversion_rate)
                     cur_frm.refresh_fields();
                 }, 300)
             }
@@ -345,7 +346,9 @@ frappe.ui.form.on("Delivery Note Item", "custom_uom", function(frm, cdt, cdn){
             uom: item.custom_uom
         },
         callback: function(r){
+            item.uom_conversion_rate = r.message.conversion_factor
             item.custom_qty = calculate_custom_qty(item.qty, r.message.conversion_factor);
+            item.qty_mapping = get_qty_wise_mapping_for_box(item.qty, item.custom_qty, item.uom_conversion_rate)
             cur_frm.refresh_fields();
         }
     });
@@ -354,10 +357,24 @@ frappe.ui.form.on("Delivery Note Item", "custom_uom", function(frm, cdt, cdn){
 frappe.ui.form.on("Delivery Note Item", "qty", function(frm, cdt, cdn){
     // set custom qty
     item = locals[cdt][cdn]
-    item.custom_qty = calculate_custom_qty(item.qty, item.conversion_factor);
+    item.custom_qty = calculate_custom_qty(item.qty, item.uom_conversion_rate);
+    item.qty_mapping = get_qty_wise_mapping_for_box(item.qty, item.custom_qty, item.uom_conversion_rate)
     cur_frm.refresh_fields();
 });
 
 calculate_custom_qty = function(qty, conversion_factor){
     return Math.ceil(cint(qty) / cint(conversion_factor))
+}
+
+get_qty_wise_mapping_for_box = function(qty, custom_qty, conversion_factor){
+    wt_mapping = {}
+    $.each(Array(custom_qty), function(idx, item){
+        if(qty < conversion_factor)
+            wt_mapping[idx] = qty
+        else{
+            wt_mapping[idx] = conversion_factor
+            qty = qty - conversion_factor
+        }
+    })
+    return JSON.stringify(wt_mapping)
 }

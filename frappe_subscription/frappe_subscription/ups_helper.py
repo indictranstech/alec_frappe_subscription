@@ -123,7 +123,11 @@ class UPSHelper(object):
 
         for docname in packing_slips:
             doc = frappe.get_doc("Packing Slip",docname)
-            item = frappe.get_doc("Item", doc.package_used)
+            # item = frappe.get_doc("Item", doc.package_used)
+            item = frappe.db.get_value("Custom UOM Conversion Details", {
+                        "parent": doc.package_used,
+                        "uom": "Nos"
+                    }, ["length", "width", "height"], as_dict=True)
             package_ref = "%s/%s"%(doc.delivery_note, doc.name)
 
             package_weight = ShipmentConfirm.package_weight_type(
@@ -132,9 +136,9 @@ class UPSHelper(object):
             dimensions = ShipmentConfirm.dimensions_type(
                 Code="IN",
                 Description="Deimensions In Inches",
-                Length= str(item.length) or "0",
-                Width= str(item.width) or "0",
-                Height= str(item.height) or "0",
+                Length= str(item.get("length")) or "0",
+                Width= str(item.get("width")) or "0",
+                Height= str(item.get("height")) or "0",
             )
 
             package_type = ShipmentConfirm.packaging_type(Code=package_type_code)

@@ -62,9 +62,10 @@ def get_items_to_pack(dn):
     if dn.dn_status == "Draft":
         items = dn.items
         for item in dn.items:
-            to_dict = get_item_details(item.item_code, item.custom_qty, custom_uom=item.custom_uom)
+            to_dict = get_item_details(item.item_code, item.custom_qty, custom_uom=item.custom_uom, dn=dn.name)
             if item.custom_qty > 0:
-                if to_dict: items_to_pack.append(to_dict)
+                if to_dict:
+                    items_to_pack.extend(to_dict) if isinstance(to_dict, list) else items_to_pack.append(to_dict)
             else:
                 frappe.throw("%s Item Qty must be greater than 0"%(item.item_code))
     elif dn.dn_status == "Partialy Packed":
@@ -72,7 +73,8 @@ def get_items_to_pack(dn):
         for item_code, qty in items.iteritems():
             to_dict = get_item_details(item_code, qty, dn=dn.name)
             if qty > 0:
-                if to_dict: items_to_pack.append(to_dict)
+                if to_dict:
+                    items_to_pack.extend(to_dict) if isinstance(to_dict, list) else items_to_pack.append(to_dict)
             else:
                 frappe.throw("%s Item Qty must be greater than 0"%(item.item_code))
 
@@ -103,7 +105,7 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
         uses_unique_packing_box = item_details.get("unique_box_for_packing") or 0
 
         dimensions = frappe.db.get_value("Custom UOM Conversion Details", 
-            {"parent":item_code, "uom":custom_uom}, ["height", "width", "length", "weight"], as_dict=True)
+            {"parent":item_code, "uom":custom_uom}, ["height", "width", "length", "weight", "conversion_factor"], as_dict=True)
 
         if not dimensions:
             frappe.throw("Item dimensions not found in Cusomt UOM Conversion Details")
@@ -117,14 +119,24 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
             height = dimensions.get("height") or 0
             width = dimensions.get("width") or 0
             depth = dimensions.get("length") or 0
-            weight = dimensions.get("weight") or 0
+            weight = dimensions.get("weight") if custom_uom == "Nos" else frappe.db.get_value("Custom UOM Conversion Details", 
+                {"parent":item_code, "uom":"Nos"}, "weight")
             if height and width and depth and weight:
-                to_dict = {
-                    "w": width, "h": height,
-                    "d": depth, "q": qty,
-                    "vr": 1, "id": item_code,
-                    "wg": weight
-                }
+                if custom_uom == "Nos":
+                    to_dict = {
+                        "w": width, "h": height,
+                        "d": depth, "q": qty,
+                        "vr": 1, "id": item_code,
+                        "wg": weight
+                    }
+                elif custom_uom == "Box":
+                    qty_mapping = frappe.db.get_value("Delivery Note Item", { "parent": dn, "item_code": item_code}, "qty_mapping")
+                    to_dict = [{ 
+                        "w": width, "h": height,
+                        "d": depth, "q": 1,
+                        "vr": 1, "id": item_code,
+                        "wg": q * weight
+                    } for k, q in json.loads(qty_mapping).iteritems()]
                 return to_dict
             else:
                 frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
