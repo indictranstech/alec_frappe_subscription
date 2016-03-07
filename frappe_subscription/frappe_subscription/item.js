@@ -26,21 +26,43 @@ cur_frm.fields_dict['box'].get_query = function(doc) {
     }
 }
 
+cur_frm.fields_dict['custom_uoms'].grid.get_field("uom").get_query = function(doc, cdt, cdn) {
+    return {
+        filters:[
+            ['UOM', 'name', 'in', ["Nos", "Box"]],
+        ]
+    }
+}
+
 frappe.ui.form.on("Custom UOM Conversion Details", "default_shipping_uom", function(frm, cdt, cdn){
     var me = this;
     doc = locals[cdt][cdn];
     is_checked = doc.default_shipping_uom;
 
-    this.count = doc.default_shipping_uom;
     $.each(cur_frm.doc.custom_uoms, function(idx, item){
         if(item.name != cdn && item.default_shipping_uom == 1)
-            me.count += 1
+            item.default_shipping_uom = 0
     })
-
-    if(this.count > 1){
-        frappe.msgprint("Only one UOM Conversion can be set as default");
-        doc.default_shipping_uom = 0;
-    }
-
     cur_frm.refresh_field("custom_uoms");
 })
+
+frappe.ui.form.on("Custom UOM Conversion Details", "uom", function(frm, cdt, cdn){
+    doc = locals[cdt][cdn];
+
+    row_count = 0
+    cur_frm.doc.custom_uoms.map(function(row, idx){
+        if(row.uom == doc.uom)
+            row_count += 1
+    })
+
+    console.log(row_count)
+    if(row_count > 1){
+        frappe.msgprint(doc.uom+" Custom UOM Conversion Details is already added");
+        cur_frm.fields_dict["custom_uoms"].grid.grid_rows[cur_frm.doc.custom_uoms.length - 1].remove();
+    }
+
+    if(doc.uom == "Nos")
+        doc.conversion_factor = 1
+
+    cur_frm.refresh_field("custom_uoms");
+});

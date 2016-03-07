@@ -1,15 +1,15 @@
 <table class="table table-bordered" style="font-size: 12px;">
 	<tr>
-		<td align="right">Qty Packed</td>
-		<td align="right"><b>{{ qty_packed }} Nos</b></td>
+		<td align="right">Total Qty To Pack</td>
+		<td align="right"><b>{{ qty_packed + qty_not_packed }} Nos</b></td>
 		<td align="center" rowspan="4" style="vertical-align: middle;"><img src='data:image/png;base64,{{ img }}'/></td>
 		<td align="center" rowspan="2" style="vertical-align: middle;">Box</td>
 		<td align="right">Dimensions</td>
 		<td align="right"><b>{{ box_dimensions }} in</b></td>
 	</tr>
 	<tr>
-		<td align="right">Qty Not Packed</td>
-		<td align="right"><b>{{ qty_not_packed }} Nos</b></td>
+		<td align="right">Qty Packed</td>
+		<td align="right"><b>{{ qty_packed }} Nos</b></td>
 		<td align="right">Weight</td>
 		<td align="right"><b>{{ box_weight }} lbs</b></td>
 	</tr>

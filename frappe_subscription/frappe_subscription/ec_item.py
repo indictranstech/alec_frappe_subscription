@@ -9,10 +9,15 @@ def validate(doc, method):
         validate_item_packing_qty(doc)
 
 def validate_uom_conversions(doc):
+    if not all(map(lambda item: item.conversion_factor > 0, doc.custom_uoms)):
+        frappe.throw("Conversion factor can not be negative")
+
     count = 0
     count = sum(map(lambda item: item.default_shipping_uom or 0, doc.custom_uoms))
-    if not count:
-        frappe.throw("Please first select the default Custom                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    UOM Conversion Details")
+    if count == 0 and len(doc.custom_uoms) > 1:
+        frappe.throw("Please first select the default Custom UOM Conversion Details")
+    elif count == 0 and len(doc.custom_uoms) == 1:
+        doc.custom_uoms[0].default_shipping_uom = 1
 
     uom_list = map(lambda item: item.uom, doc.custom_uoms)
     if doc.item_group == "Boxes" and "Nos" not in uom_list:
@@ -66,7 +71,7 @@ def validate_dimensions(doc):
             if any([box_height > height, box_width > width, box_depth > depth, box_weight > weight]):
                 frappe.throw("Dimensions for the %s UOM should be greater than the %s's Dimensions"%(item.uom, doc.box))
             elif item.conversion_factor <= 0:
-                frappe.throw("Invalide Conversion factor")
+                frappe.throw("Invalide Conversion factor for Box")
 
 def validate_item_packing_qty(doc):
     # check if number of items (qty > conversion factor) fits in Box dimentions
