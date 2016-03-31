@@ -26,8 +26,8 @@ params = {
 
 @frappe.whitelist()
 def get_bin_packing_details(delivery_note):
-    """create 3D bin packing API JSON request and parse the JSON response"""
-    try:
+        """create 3D bin packing API JSON request and parse the JSON response"""
+#    try:
         # dn = frappe.get_doc("Delivery Note", delivery_note)
         dn = frappe.get_doc(json.loads(delivery_note))
 
@@ -52,8 +52,8 @@ def get_bin_packing_details(delivery_note):
                 return get_packing_slip_details(delivery_note, None, items_with_unique_boxes)
             else:
                 frappe.throw("No items found for bin packing process")
-    except Exception, e:
-        frappe.throw(e)
+ #   except Exception, e:
+ #       frappe.throw(e)
 
 def get_items_to_pack(dn):
     """Get the delivery note items, if dn_status is Draft else get the items from not_packed_items field"""

@@ -121,7 +121,6 @@ def create_packing_slip(delivery_note, case_no, bin_detail):
         ch_item.stock_uom = dn_item.get("stock_uom")
         ch_item.description = dn_item.get("description")
         ch_item.batch_no = dn_item.get("batch_no")
-
     ps.submit()
     return ps.name
 
