@@ -113,6 +113,26 @@ frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
         frappe.msgprint("Delivery Note is in Freezed State can not add new Item !!");
         cur_frm.fields_dict["items"].grid.grid_rows[cur_frm.doc.items.length - 1].remove();
     }
+    else{
+        // fetch custom UOM
+        var me = this
+        this.item = locals[cdt][cdn]
+        frappe.call({
+            method: "frappe_subscription.frappe_subscription.ec_item.get_default_uom",
+            args: {
+                item_code:item.item_code,
+            },
+            callback: function(r){
+                item.custom_uom = r.message.uom;
+                item.uom_conversion_rate = r.message.conversion_factor;
+                window.setTimeout(function(){
+                    me.item.custom_qty = calculate_custom_qty(me.item.qty, me.item.uom_conversion_rate);
+                    item.qty_mapping = get_qty_wise_mapping_for_box(item.qty, item.custom_qty, item.uom_conversion_rate)
+                    cur_frm.refresh_fields();
+                }, 300)
+            }
+        });
+    }
 });
 
 frappe.ui.form.on("Delivery Note Item", "items_remove", function(doc, cdt, cdn) {
@@ -203,44 +223,44 @@ var service = ""
 
 frappe.UPSShippingRates = Class.extend({
     // UPS Other Services Rates POP-UP
-	init: function(rates) {
-		this.make(rates);
-	},
-	make: function(rates) {
-		shipping_rates = []
+    init: function(rates) {
+        this.make(rates);
+    },
+    make: function(rates) {
+        shipping_rates = []
 
-		var me = this;
-		me.pop_up = this.render_pop_up_dialog(cur_frm.doc,me);
+        var me = this;
+        me.pop_up = this.render_pop_up_dialog(cur_frm.doc,me);
 
-		this.append_pop_up_dialog_body(me.pop_up);
-		this.append_shipping_charges(rates,cur_frm.doc);
+        this.append_pop_up_dialog_body(me.pop_up);
+        this.append_shipping_charges(rates,cur_frm.doc);
 
-		me.pop_up.show()
-	},
+        me.pop_up.show()
+    },
     render_pop_up_dialog: function(doc, me){
-		return new frappe.ui.Dialog({
-			title: "Select Carrier Service",
-			no_submit_on_enter: true,
+        return new frappe.ui.Dialog({
+            title: "Select Carrier Service",
+            no_submit_on_enter: true,
             fields: [
-				{label:__("Shipping Charges"), fieldtype:"HTML", fieldname:"charges"},
-			],
+                {label:__("Shipping Charges"), fieldtype:"HTML", fieldname:"charges"},
+            ],
 
-			primary_action_label: "Submit",
-			primary_action: function() {
-				// Update Clearance Date of the checked vouchers
-				_me = this;
+            primary_action_label: "Submit",
+            primary_action: function() {
+                // Update Clearance Date of the checked vouchers
+                _me = this;
                 me.pop_up.hide();
                 set_up_taxes_and_charges(service, 0);
             }
         });
     },
     append_pop_up_dialog_body: function(pop_up){
-		this.fd = pop_up.fields_dict;
-		this.pop_up_body = $("<div id='container' style='overflow: auto;max-height: 300px;'>\
+        this.fd = pop_up.fields_dict;
+        this.pop_up_body = $("<div id='container' style='overflow: auto;max-height: 300px;'>\
                             <table class='table table-bordered table-hover' id='entries'>\
                             <thead><th></th><th><b>Service Code</b></th><th><b>Service</b></th>\
                             <th><b>Charges</b></th></thead><tbody></tbody></table></div>").appendTo($(this.fd.charges.wrapper));
-	},
+    },
     append_shipping_charges: function(ups_rates,doc){
         var rates = ups_rates
         service = rates["service_used"];
@@ -305,3 +325,56 @@ frappe.UPSShippingRates = Class.extend({
         });
     },
 });
+
+cur_frm.fields_dict['items'].grid.get_field("custom_uom").get_query = function(doc, cdt, cdn) {
+    item = locals[cdt][cdn]
+    return {
+        query: "frappe_subscription.frappe_subscription.ec_item.custom_uom_query",
+        filters: {
+            item_code: item.item_code
+        }
+    }
+}
+
+frappe.ui.form.on("Delivery Note Item", "custom_uom", function(frm, cdt, cdn){
+    // set custom qty
+    item = locals[cdt][cdn]
+    frappe.call({
+        method: "frappe_subscription.frappe_subscription.ec_item.get_conversion_factor",
+        args: {
+            item_code:item.item_code,
+            uom: item.custom_uom
+        },
+        callback: function(r){
+            item.uom_conversion_rate = r.message.conversion_factor
+            item.custom_qty = calculate_custom_qty(item.qty, r.message.conversion_factor);
+            item.qty_mapping = get_qty_wise_mapping_for_box(item.qty, item.custom_qty, item.uom_conversion_rate)
+            cur_frm.refresh_fields();
+        }
+    });
+})
+
+frappe.ui.form.on("Delivery Note Item", "qty", function(frm, cdt, cdn){
+    // set custom qty
+    item = locals[cdt][cdn]
+    item.custom_qty = calculate_custom_qty(item.qty, item.uom_conversion_rate);
+    item.qty_mapping = get_qty_wise_mapping_for_box(item.qty, item.custom_qty, item.uom_conversion_rate)
+    cur_frm.refresh_fields();
+});
+
+calculate_custom_qty = function(qty, conversion_factor){
+    return Math.ceil(cint(qty) / cint(conversion_factor))
+}
+
+get_qty_wise_mapping_for_box = function(qty, custom_qty, conversion_factor){
+    wt_mapping = {}
+    $.each(Array(custom_qty), function(idx, item){
+        if(qty < conversion_factor)
+            wt_mapping[idx] = qty
+        else{
+            wt_mapping[idx] = conversion_factor
+            qty = qty - conversion_factor
+        }
+    })
+    return JSON.stringify(wt_mapping)
+}

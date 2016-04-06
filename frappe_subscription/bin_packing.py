@@ -62,23 +62,25 @@ def get_items_to_pack(dn):
     if dn.dn_status == "Draft":
         items = dn.items
         for item in dn.items:
-            to_dict = get_item_details(item.item_code, item.qty)
-            if item.qty > 0:
-                if to_dict: items_to_pack.append(to_dict)
+            to_dict = get_item_details(item.item_code, item.custom_qty, custom_uom=item.custom_uom, dn=dn.name)
+            if item.custom_qty > 0:
+                if to_dict:
+                    items_to_pack.extend(to_dict) if isinstance(to_dict, list) else items_to_pack.append(to_dict)
             else:
                 frappe.throw("%s Item Qty must be greater than 0"%(item.item_code))
     elif dn.dn_status == "Partialy Packed":
         items = json.loads(dn.not_packed_items)
         for item_code, qty in items.iteritems():
-            to_dict = get_item_details(item_code, qty)
+            to_dict = get_item_details(item_code, qty, dn=dn.name)
             if qty > 0:
-                if to_dict: items_to_pack.append(to_dict)
+                if to_dict:
+                    items_to_pack.extend(to_dict) if isinstance(to_dict, list) else items_to_pack.append(to_dict)
             else:
                 frappe.throw("%s Item Qty must be greater than 0"%(item.item_code))
 
     return items_to_pack
 
-def get_item_details(item_code, qty):
+def get_item_details(item_code, qty, custom_uom=None, dn=None):
     """
     Get item details like height, depth, lenght, weight and return 3D bin API dict structure for item details
     {
@@ -88,31 +90,58 @@ def get_item_details(item_code, qty):
         "wg":weight
     }
     """
-    item_details = frappe.db.get_values("Item",item_code,
-                                        ["item_group", "unique_box_for_packing", "height", "width", "length", "weight_"],
-                                        as_dict=True)
+    if all([not custom_uom, not dn]):
+        frappe.throw("Custom UOM and Delivery Note name not found")
+    elif not custom_uom:
+        # get custom uom
+        custom_uom = frappe.db.get_value("Delivery Note Item", { "parent": dn, "item_code":item_code }, "custom_uom")
+
+    item_details = frappe.db.get_values("Item",item_code, ["item_group", "unique_box_for_packing"], as_dict=True)
     if not item_details:
         frappe.throw("Invalid Item")
     else:
-        item_group = item_details[0].get("item_group")
-        uses_unique_packing_box = item_details[0].get("unique_box_for_packing") or 0
-        if (item_group != "Boxes") and (not uses_unique_packing_box):
-            height = item_details[0].get("height") or 0
-            width = item_details[0].get("width") or 0
-            depth = item_details[0].get("length") or 0
-            weight = item_details[0].get("weight_") or 0
+        item_details = item_details[0]
+        item_group = item_details.get("item_group")
+        uses_unique_packing_box = item_details.get("unique_box_for_packing") or 0
 
+        dimensions = frappe.db.get_value("Custom UOM Conversion Details", 
+            {"parent":item_code, "uom":custom_uom}, ["height", "width", "length", "weight", "conversion_factor"], as_dict=True)
+
+        if not dimensions:
+            frappe.throw("Item dimensions not found in Cusomt UOM Conversion Details")
+
+        if item_group == "Boxes":
+            return None
+        
+        if uses_unique_packing_box and custom_uom == "Nos":
+            return None
+        else:
+            height = dimensions.get("height") or 0
+            width = dimensions.get("width") or 0
+            depth = dimensions.get("length") or 0
+            weight = dimensions.get("weight") if custom_uom == "Nos" else frappe.db.get_value("Custom UOM Conversion Details", 
+                {"parent":item_code, "uom":"Nos"}, "weight")
             if height and width and depth and weight:
-                to_dict = {
-                    "w": width, "h": height,
-                    "d": depth, "q": qty,
-                    "vr": 1, "id": item_code,
-                    "wg": weight
-                }
+                if custom_uom == "Nos":
+                    to_dict = {
+                        "w": width, "h": height,
+                        "d": depth, "q": qty,
+                        "vr": 1, "id": item_code,
+                        "wg": weight
+                    }
+                elif custom_uom == "Box":
+                    qty_mapping = frappe.db.get_value("Delivery Note Item", { "parent": dn, "item_code": item_code}, "qty_mapping")
+                    to_dict = [{ 
+                        "w": width, "h": height,
+                        "d": depth, "q": 1,
+                        "vr": 1, "id": item_code,
+                        "wg": q * weight
+                    } for k, q in json.loads(qty_mapping).iteritems()]
                 return to_dict
             else:
                 frappe.throw("Please set the valid dimension details for {0} item".format(item_code))
 
+# TO CHECK
 def get_unique_box_items_to_pack(dn, to_pack):
     """get items which uses the unique box for packing,  if dn_status is Draft else get the items from not_packed_items field"""
     items_with_unique_boxes = []
@@ -120,13 +149,13 @@ def get_unique_box_items_to_pack(dn, to_pack):
         for item in dn.items:
             if item.item_code not in to_pack:
                 # check if item requires unique Box
-                if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing"):
+                if frappe.db.get_value("Item", item.item_code,"unique_box_for_packing") and item.custom_uom == "Nos":
                     item_details = get_item_with_unique_box_details(item.item_code, item.qty)
                     [items_with_unique_boxes.append(item_details) for i in xrange(int(item.qty))]
     elif dn.dn_status == "Partialy Packed":
         items = json.loads(dn.not_packed_items)
         for item_code, qty in items.iteritems():
-            if frappe.db.get_value("Item", item_code,"unique_box_for_packing"):
+            if frappe.db.get_value("Item", item_code,"unique_box_for_packing") and item.custom_uom == "Nos":
                 item_details = get_item_with_unique_box_details(item_code, qty)
                 [items_with_unique_boxes.append(item_details) for i in xrange(int(qty))]
     return items_with_unique_boxes
@@ -223,15 +252,18 @@ def get_bin_details():
 
     bins = []
     query = """SELECT
-                i.name, i.width, i.height, i.length, i.weight_
+                i.name, u.width, u.height, u.length, u.weight
             FROM
                 `tabItem` i,
+                `tabCustom UOM Conversion Details` u,
                 `tabBin` b
             WHERE
                 i.item_group='Boxes'
             AND i.name NOT IN (SELECT box FROM `tabItem` WHERE unique_box_for_packing=1)
             AND b.item_code=i.item_code
             AND b.warehouse=i.default_warehouse
+            AND u.parent=i.item_code
+            AND u.uom='Nos'
             AND b.actual_qty>0"""
 
     items = frappe.db.sql(query,as_dict=True)
@@ -240,7 +272,7 @@ def get_bin_details():
         height = item.get('height')
         width = item.get("width")
         depth = item.get("length")
-        weight = item.get("weight_")
+        weight = item.get("weight")
 
         if height and width and depth and weight:
             bins.append({
@@ -277,12 +309,13 @@ def get_bin_packing_request(bins, items, credentials, params):
         "params": params
     }
 
-def get_bin_packing_response(request):
+def get_bin_packing_response(request, api_xpath="/packer/packIntoMany"):
     connection = httplib.HTTPConnection(host='eu.api.3dbinpacking.com', port=80)
     req_params =  urllib.urlencode({'query':json.dumps(request)})
     headers = {"Content-type": "application/x-www-form-urlencoded",
             "Accept": "text/plain"}
-    connection.request("POST", "/packer/packIntoMany", req_params, headers)
+    # connection.request("POST", "/packer/packIntoMany", req_params, headers)
+    connection.request("POST", api_xpath, req_params, headers)
     content = connection.getresponse().read()
     connection.close()
 
@@ -292,5 +325,5 @@ def get_bin_packing_response(request):
     else:
         errors = response.get("response").get("errors")
         # msg = "Packing Slip can not be created\n%s"%("\n".join(errors))
-        msg = "Packing Slip can not be created\n"
+        msg = "3D Bin Packing Alogorith Error.\n"
         frappe.throw(msg)

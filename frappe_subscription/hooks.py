@@ -83,7 +83,7 @@ doc_events = {
 		"validate": "frappe_subscription.frappe_subscription.ec_address.validate_address",
 	},
 	"Item":{
-		"validate": "frappe_subscription.frappe_subscription.ec_item.validate_dimensions",
+		"validate": "frappe_subscription.frappe_subscription.ec_item.validate",
 	},
 }
 

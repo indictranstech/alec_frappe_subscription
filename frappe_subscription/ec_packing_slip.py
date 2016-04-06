@@ -205,9 +205,16 @@ def throw_bin_packing_error(bin_algo_response):
     # msg = "Error occured while creating packing slips\n"
     msg = ""
     if bin_algo_response:
-        for error in bin_algo_response.get("errors"):
-            if error.get("message"):
-                msg += "%s\n"%(error.get("message"))
+        if bin_algo_response.get("errors"):
+            for error in bin_algo_response.get("errors"):
+                if error.get("message"):
+                    msg += "%s\n"%(error.get("message"))
+        elif not bin_algo_response.get('bins_packed'):
+            msg = "Items can not be packed in any bins"
+        else:
+            msg = "3d bin packing error"
+    else:
+        msg += "bin packing response not found"
     frappe.throw(msg)
 
 # def get_not_packed_items(not_packed_items):
