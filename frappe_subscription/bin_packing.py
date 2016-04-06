@@ -104,7 +104,7 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
         item_group = item_details.get("item_group")
         uses_unique_packing_box = item_details.get("unique_box_for_packing") or 0
 
-        dimensions = frappe.db.get_value("Custom UOM Conversion Details", 
+        dimensions = frappe.db.get_value("Custom UOM Conversion Details",
             {"parent":item_code, "uom":custom_uom}, ["height", "width", "length", "weight", "conversion_factor"], as_dict=True)
 
         if not dimensions:
@@ -112,14 +112,14 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
 
         if item_group == "Boxes":
             return None
-        
+
         if uses_unique_packing_box and custom_uom == "Nos":
             return None
         else:
             height = dimensions.get("height") or 0
             width = dimensions.get("width") or 0
             depth = dimensions.get("length") or 0
-            weight = dimensions.get("weight") if custom_uom == "Nos" else frappe.db.get_value("Custom UOM Conversion Details", 
+            weight = dimensions.get("weight") if custom_uom == "Nos" else frappe.db.get_value("Custom UOM Conversion Details",
                 {"parent":item_code, "uom":"Nos"}, "weight")
             if height and width and depth and weight:
                 if custom_uom == "Nos":
@@ -131,7 +131,7 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
                     }
                 elif custom_uom == "Box":
                     qty_mapping = frappe.db.get_value("Delivery Note Item", { "parent": dn, "item_code": item_code}, "qty_mapping")
-                    to_dict = [{ 
+                    to_dict = [{
                         "w": width, "h": height,
                         "d": depth, "q": 1,
                         "vr": 1, "id": item_code,
@@ -325,5 +325,6 @@ def get_bin_packing_response(request, api_xpath="/packer/packIntoMany"):
     else:
         errors = response.get("response").get("errors")
         # msg = "Packing Slip can not be created\n%s"%("\n".join(errors))
-        msg = "3D Bin Packing Alogorith Error.\n"
+        msg = """3D Bin Packing Algorithm Error. If trying to add dimensions,
+               be sure that Nos is already created. """
         frappe.throw(msg)
