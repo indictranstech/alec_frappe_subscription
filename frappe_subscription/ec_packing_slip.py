@@ -165,7 +165,7 @@ def on_packing_slip_cancel(doc, method):
                     dn.not_packed_items = json.dumps(not_packed_items)
                 dn.save(ignore_permissions = True)
 
-                frappe.delete_doc("Packing Slip",doc.name, ignore_permissions=True)
+                frappe.delete_doc("Packing Slip", doc.name, force=True, ignore_permissions=True)
 
 # def on_packing_slip_update(doc, method):
 #     """ update the tracking status on delivery note """

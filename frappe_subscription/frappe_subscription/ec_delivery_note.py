@@ -1,7 +1,7 @@
 import frappe
 import json
-from frappe_subscription.frappe_subscription.ups_shipping_rates import get_shipping_rates
-from frappe_subscription.frappe_subscription.ups_shipping_package import get_shipping_labels
+#from frappe_subscription.frappe_subscription.ups_shipping_rates import get_shipping_rates
+#from frappe_subscription.frappe_subscription.ups_shipping_package import get_shipping_labels
 
 
 def on_delivery_note_delete(doc, method):
@@ -45,18 +45,18 @@ def delete_packing_slips(doc):
         if ps_details.label_path and not doc.is_manual_shipping:
             labels_to_remove.append(ps_details.label_path)
 
-        [doc.remove(ch) for ch in ch_to_remove]
-        remove_shipping_overhead(doc)
-        for ch in ch_to_remove:
-            frappe.delete_doc("Packing Slip Details", ch.name,
-                              force=True, ignore_permissions=True)
-        for ps in ps_to_cancel:
-            doc = frappe.model.document.get_doc("Packing Slip", ps)
-            doc.cancel()
-            doc.delete()
+    [doc.remove(ch) for ch in ch_to_remove]
+    remove_shipping_overhead(doc)
+    for ch in ch_to_remove:
+        frappe.delete_doc("Packing Slip Details", ch.name,
+                          force=True, ignore_permissions=True)
+    for ps in ps_to_cancel:
+        doc = frappe.model.document.get_doc("Packing Slip", ps)
+        doc.cancel()
+        frappe.delete_doc(doctype="Packing Slip", name=ps, force=True)
 
-        if labels_to_remove:
-            remove_png_and_zpl_labels(labels_to_remove)
+    if labels_to_remove:
+        remove_png_and_zpl_labels(labels_to_remove)
 
 
 def remove_png_and_zpl_labels(labels):
