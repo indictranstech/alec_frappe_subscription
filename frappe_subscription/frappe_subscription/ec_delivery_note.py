@@ -3,6 +3,13 @@ import json
 from frappe_subscription.frappe_subscription.ups_shipping_rates import get_shipping_rates
 from frappe_subscription.frappe_subscription.ups_shipping_package import get_shipping_labels
 
+
+def on_delivery_note_delete(doc, method):
+    doc.dn_status = "Draft"
+    doc.save()
+    delete_packing_slips(doc)
+
+
 def on_delivery_note_cancel(doc, method):
     # check the freeze state of the delivery note
     # cancel and delete all the packing slip
@@ -14,32 +21,43 @@ def on_delivery_note_cancel(doc, method):
         link = "<a href= '#Form/Stock Entry/{0}'>{0}</a>".format(doc.boxes_stock_entry)
         frappe.throw("First Cancel the Stock Entry : %s "%(link))
     else:
-        # delete the packing slips
-        ps_to_cancel = []
-        ch_to_remove = []
-        labels_to_remove = []
-        bin_items = {}
-
-        for ps_details in doc.packing_slip_details:
-            ps_to_cancel.append(ps_details.packing_slip)
-            bin_qty = (bin_items.get(ps_details.item_code) or 0) + 1
-            bin_items.update({
-                ps_details.item_code:bin_qty
-            })
-            ch_to_remove.append(ps_details)
-            if ps_details.label_path and not doc.is_manual_shipping:
-                labels_to_remove.append(ps_details.label_path)
-
-        [doc.remove(ch) for ch in ch_to_remove]
-        remove_shipping_overhead(doc)
-        [frappe.delete_doc("Packing Slip Details",ch.name, ignore_permissions=True) for ch in ch_to_remove]
-        [frappe.delete_doc("Packing Slip", ps_name, ignore_permissions=True) for ps_name in ps_to_cancel]
-        if labels_to_remove: remove_png_and_zpl_labels(labels_to_remove)
+        delete_packing_slips(doc)
 
         doc.dn_status = "Draft"
         doc.boxes_stock_entry = ""
         doc.is_manual_shipping = 0
         doc.carrier_shipping_rate = ""
+
+
+def delete_packing_slips(doc):
+    ps_to_cancel = []
+    ch_to_remove = []
+    labels_to_remove = []
+    bin_items = {}
+
+    for ps_details in doc.packing_slip_details:
+        ps_to_cancel.append(ps_details.packing_slip)
+        bin_qty = (bin_items.get(ps_details.item_code) or 0) + 1
+        bin_items.update({
+            ps_details.item_code:bin_qty
+        })
+        ch_to_remove.append(ps_details)
+        if ps_details.label_path and not doc.is_manual_shipping:
+            labels_to_remove.append(ps_details.label_path)
+
+        [doc.remove(ch) for ch in ch_to_remove]
+        remove_shipping_overhead(doc)
+        for ch in ch_to_remove:
+            frappe.delete_doc("Packing Slip Details", ch.name,
+                              force=True, ignore_permissions=True)
+        for ps in ps_to_cancel:
+            doc = frappe.model.document.get_doc("Packing Slip", ps)
+            doc.cancel()
+            doc.delete()
+
+        if labels_to_remove:
+            remove_png_and_zpl_labels(labels_to_remove)
+
 
 def remove_png_and_zpl_labels(labels):
     # remove .png and .zpl shipping labels from system
