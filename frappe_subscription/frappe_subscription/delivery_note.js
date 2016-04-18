@@ -135,6 +135,29 @@ frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
     }
 });
 
+frappe.ui.form.on("Delivery Note", "onload", function(doc, cdt, cdn) {
+  var doc = locals[cdt][cdn];
+  var items = doc.items;
+  if(items){
+    items.forEach(function(entry) {
+      frappe.call({
+        method: "frappe_subscription.frappe_subscription.ec_item.get_default_uom",
+        args: {
+          item_code: entry.item_code,
+        },
+      callback: function(r) {
+        entry.custom_uom = r.message.uom,
+        entry.uom_conversion_rate = r.message.conversion_factor,
+        entry.custom_qty = calculate_custom_qty(entry.qty, entry.uom_conversion_rate),
+        entry.qty_mapping = get_qty_wise_mapping_for_box(entry.qty, entry.custom_qty, entry.uom_conversion_rate),
+        cur_frm.refresh_fields();
+        }
+      });
+    })
+  }
+});
+
+
 frappe.ui.form.on("Delivery Note Item", "items_remove", function(doc, cdt, cdn) {
     dn_status = cur_frm.doc.dn_status;
     if(dn_status != "Draft"){
