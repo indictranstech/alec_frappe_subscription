@@ -1,7 +1,7 @@
 import frappe
 import json
-#from frappe_subscription.frappe_subscription.ups_shipping_rates import get_shipping_rates
-#from frappe_subscription.frappe_subscription.ups_shipping_package import get_shipping_labels
+from frappe_subscription.frappe_subscription.ups_shipping_rates import get_shipping_rates
+from frappe_subscription.frappe_subscription.ups_shipping_package import get_shipping_labels
 
 
 def on_delivery_note_delete(doc, method):
