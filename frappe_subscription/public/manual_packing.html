@@ -1,0 +1,32 @@
+<div>
+	<table class="table table-bordered table-hover item-table">
+		<tr>
+			<th>Select</th>
+			<th>Item Code</th>
+			<th>UOM</th>
+			<th>Quantity</th>
+			<th>Select Qty</th>
+		</tr>
+		{% for(var i=0, l=data.length; i < l; i++) { %}
+		<tr class="t_row" item="{{data[i].item_code}}" style="line-height: 1; font-size: 14px; margin-bottom:0px;">
+			<td class="check_row" style="text-align: center; padding-bottom:3px;padding-left:3px;padding-right:3px; line-height: 1;">
+				<label for="check">
+					<input type="checkbox" name="check" id="check" style="height: 1em; width: 1em;" />
+				</label>
+			</td>
+			<td style="width: 200px; padding-bottom:3px;padding-left:3px;padding-right:3px; line-height: 1;">
+				{{ data[i].item_code }}
+			</td>
+			<td style="width: 80px; padding-bottom:3px;padding-left:3px;padding-right:3px; line-height: 1;">
+				{{ data[i].custom_uom }}
+			</td>
+			<td style="width: 80px; padding-bottom:3px;padding-left:3px;padding-right:3px; line-height: 1;">
+				{{ data[i].custom_qty }}
+			</td>
+			<td class="select_qty" style="padding-bottom:3px;padding-left:3px;padding-right:3px; line-height: 1;">
+				<input type="number" name="select_qty" id="select_qty" style="width: 80px;" />
+			</td>
+		</tr>
+		{% } %}
+	</table>
+</div>

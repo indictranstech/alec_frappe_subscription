@@ -266,7 +266,8 @@ def get_bin_details():
             AND u.uom='Nos'
             AND b.actual_qty>0"""
 
-    items = frappe.db.sql(query,as_dict=True)
+    items = frappe.db.sql(query,as_dict=True,debug=1)
+    frappe.errprint(items)
 
     for item in items:
         height = item.get('height')
