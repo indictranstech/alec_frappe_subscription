@@ -100,7 +100,7 @@ cur_frm.cscript.pack_manualy = function(doc,cdt,cdn){
     if(doc.__islocal){
         doc.pack_manualy = 0
         refresh_field('pack_manualy')
-        frappe.throw("Please first save Delivery Note........");
+        frappe.throw("Please first save Delivery Note...");
     }
     else{
         if(doc.status == "Draft" && (doc.dn_status == "Packing Slips Created" || doc.dn_status == "Manual Partialy Packed")){

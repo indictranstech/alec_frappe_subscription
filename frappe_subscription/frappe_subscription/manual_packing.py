@@ -3,17 +3,26 @@ import frappe
 from frappe.utils import flt, cint
 from frappe import _
 import json
+from frappe.utils import getdate, validate_email_add, today,get_datetime,now
+import datetime
 
 # Confirm manual packing and removing existing pcking slip
 @frappe.whitelist()
 def pack_manualy(delivery_note):
 	dn = frappe.get_doc(json.loads(delivery_note))
 	delete_ps = []
+	count = 0
 
 	if dn.packing_slip_details:
 		for ps in dn.packing_slip_details:
 			if ps.packing_slip :
-				delete_ps.append(ps)
+				unique_ps = frappe.db.sql("""select psi.item_code from `tabPacking Slip` ps, 
+				`tabPacking Slip Item` psi where ps.name = psi.parent and ps.name = '%s' """%(ps.packing_slip),as_dict=1)
+				for i in unique_ps:
+					unique_item = frappe.db.get_value("Item", i['item_code'], ["unique_box_for_packing"])
+				if unique_item == 0:
+					delete_ps.append(ps)
+		# delete created packing slips which have not unique box
 		if delete_ps:
 			[dn.remove(chlid_row) for chlid_row in delete_ps]
 			pack_slip = frappe.get_doc("Packing Slip", chlid_row.packing_slip)
@@ -23,6 +32,12 @@ def pack_manualy(delivery_note):
 			
 			dn.pack_manualy = 1
 			dn.save(ignore_permissions = True)
+		# update case no and tacking status of unique box packing slips
+		if dn.packing_slip_details:
+			for ps in dn.packing_slip_details:
+				count = count + 1
+				frappe.db.sql("""update `tabPacking Slip` set track_status = "Manual",from_case_no = '%s',  
+					to_case_no = '%s' where name = '%s' """%(count,count,ps.packing_slip))
 	return "Done...!!!"
 
 # Get items to manual packing from DN
@@ -32,9 +47,12 @@ def manual_packing_creation(delivery_note):
 	items = []
 	remain = []
 	# return items to manual packing
-	if dn.dn_status == "Packing Slips Created" and dn.pack_manualy ==1 :
-		items = dn.items
-	elif dn.dn_status == "Manual Partialy Packed" and dn.pack_manualy ==1 :
+	if dn.dn_status == "Packing Slips Created" and dn.pack_manualy == 1 :
+		for i in dn.items:
+			not_unq_item = frappe.db.get_value("Item", i.item_code, ["unique_box_for_packing"])
+			if not_unq_item == 0:
+				items.append(i)
+	elif dn.dn_status == "Manual Partialy Packed" and dn.pack_manualy == 1 :
 		remain_items = frappe.db.sql("""select distinct psi.item_code from `tabPacking Slip` ps, `tabPacking Slip Item` psi, 
 			`tabDelivery Note` dn, `tabDelivery Note Item` dni where ps.delivery_note = '%s' and dni.parent = dn.name 
 			and psi.parent = ps.name """%(dn.name), as_list=1)
