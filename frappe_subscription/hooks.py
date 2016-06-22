@@ -13,7 +13,7 @@ app_version = "0.0.1"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/frappe_subscription/css/frappe_subscription.css"
-# app_include_js = "/assets/frappe_subscription/js/frappe_subscription.js"
+app_include_js = "/assets/js/frappe_subscription.min.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/frappe_subscription/css/frappe_subscription.css"

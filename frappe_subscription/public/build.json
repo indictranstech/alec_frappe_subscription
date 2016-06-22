@@ -1,0 +1,5 @@
+{
+	"js/frappe_subscription.min.js": [
+		"public/manual_packing.html"
+	]
+}
