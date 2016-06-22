@@ -9,7 +9,6 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
     if bin_algo_response or unique_box_items:
         # check if response contains the not packed items
         if bin_algo_response and bin_algo_response.get("not_packed_items"):
-            frappe.errprint(bin_algo_response)
             throw_bin_packing_error(bin_algo_response)
         else:
             # dn = frappe.get_doc("Delivery Note",delivery_note)

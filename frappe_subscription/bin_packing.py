@@ -45,7 +45,6 @@ def get_bin_packing_details(delivery_note):
                 if not bins:
                     frappe.throw("No Bins Founds, Please check the stock")
                 credentials = get_bin_packing_credentials()
-                frappe.errprint(bins)
                 request = get_bin_packing_request(bins,items_to_pack,credentials,params)
                 response = get_bin_packing_response(request)
                 return get_packing_slip_details(delivery_note, response.get("response"), items_with_unique_boxes)
@@ -197,7 +196,6 @@ def get_item_with_unique_box_details(item_code, qty):
                 uom.default_shipping_uom=1 and uom.parent='{0}' """.format(item_code)
 
     item_details = frappe.db.sql(query, as_dict=1)
-    frappe.errprint(item_details)
 
     if not item_details:
         frappe.throw("%s Item Details Not found"%(item_code))
@@ -283,7 +281,6 @@ def get_bin_details():
             AND b.actual_qty>0"""
 
     items = frappe.db.sql(query,as_dict=True,debug=1)
-    frappe.errprint(items)
 
     for item in items:
         height = item.get('height')
