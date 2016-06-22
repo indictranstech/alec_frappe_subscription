@@ -18,20 +18,23 @@ def pack_manualy(delivery_note):
 			if ps.packing_slip :
 				unique_ps = frappe.db.sql("""select psi.item_code from `tabPacking Slip` ps, 
 				`tabPacking Slip Item` psi where ps.name = psi.parent and ps.name = '%s' """%(ps.packing_slip),as_dict=1)
+				
 				for i in unique_ps:
 					unique_item = frappe.db.get_value("Item", i['item_code'], ["unique_box_for_packing"])
 				if unique_item == 0:
 					delete_ps.append(ps)
+		
 		# delete created packing slips which have not unique box
 		if delete_ps:
-			[dn.remove(chlid_row) for chlid_row in delete_ps]
-			pack_slip = frappe.get_doc("Packing Slip", chlid_row.packing_slip)
-			if chlid_row.packing_slip == pack_slip.name:
-				frappe.db.sql("""update `tabPacking Slip` set docstatus = 2 where name = '%s' """%(chlid_row.packing_slip))
-				frappe.delete_doc("Packing Slip", chlid_row.packing_slip, force=True, ignore_permissions=True)
-			
-			dn.pack_manualy = 1
-			dn.save(ignore_permissions = True)
+			# [dn.remove(chlid_row) for chlid_row in delete_ps]
+			for chlid_row in delete_ps:
+				pack_slip = frappe.get_doc("Packing Slip", chlid_row.packing_slip)
+				if chlid_row.packing_slip == pack_slip.name:
+					frappe.db.sql("""update `tabPacking Slip` set docstatus = 2 where name = '%s' """%(chlid_row.packing_slip))
+					frappe.delete_doc("Packing Slip", chlid_row.packing_slip, force=True, ignore_permissions=True)
+				dn.remove(chlid_row)
+				dn.pack_manualy = 1
+				dn.save(ignore_permissions = True)
 		# update case no and tacking status of unique box packing slips
 		if dn.packing_slip_details:
 			for ps in dn.packing_slip_details:
@@ -45,6 +48,7 @@ def pack_manualy(delivery_note):
 def manual_packing_creation(delivery_note):
 	dn = frappe.get_doc(json.loads(delivery_note))
 	items = []
+	remain_i = []
 	remain = []
 	# return items to manual packing
 	if dn.dn_status == "Packing Slips Created" and dn.pack_manualy == 1 :
@@ -53,14 +57,21 @@ def manual_packing_creation(delivery_note):
 			if not_unq_item == 0:
 				items.append(i)
 	elif dn.dn_status == "Manual Partialy Packed" and dn.pack_manualy == 1 :
-		remain_items = frappe.db.sql("""select distinct psi.item_code from `tabPacking Slip` ps, `tabPacking Slip Item` psi, 
-			`tabDelivery Note` dn, `tabDelivery Note Item` dni where ps.delivery_note = '%s' and dni.parent = dn.name 
-			and psi.parent = ps.name """%(dn.name), as_list=1)
+		remain_items = frappe.db.sql("""select psi.item_code, sum(psi.qty) from `tabPacking Slip` ps, 
+					`tabPacking Slip Item` psi where ps.delivery_note = '%s' and psi.parent = ps.name 
+					group by psi.item_code """%(dn.name), as_list=1)
 		for r in remain_items:
-			remain.append(r[0])
+			remain.append(r)
+			remain_i.append(r[0])
 		if remain_items:
 			for i in dn.items:
-				if i.item_code not in remain:
+				for r in remain:
+					if i.item_code == r[0]:
+						if i.custom_qty > r[1]:
+							i.custom_qty = i.custom_qty - r[1]
+							items.append(i)
+					
+				if i.item_code not in remain_i:
 					# if remain_items[0]['item_code'] != i.item_code:
 					items.append(i)
 	
@@ -75,6 +86,7 @@ def manual_packing_creation(delivery_note):
 # Fetch weight values of items
 @frappe.whitelist()
 def calculate_total_weight(item,select_qty):
+	item = item.strip()
 	wt = frappe.db.sql("""select cuom.weight from `tabCustom UOM Conversion Details` cuom, `tabItem` i where
 		i.name = cuom.parent and cuom.default_shipping_uom = 1 and i.name = '%s' """%(item),as_dict=1)
 	wt.append(select_qty)

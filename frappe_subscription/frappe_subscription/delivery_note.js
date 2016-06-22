@@ -170,15 +170,18 @@ cur_frm.cscript.manual_packing = function(doc,cdt,cdn){
                                 di.show();
 
                                 $(di.body).find("[data-fieldname='box']").autocomplete({source: r.message[1]})
-
+                                $(di.body).find("[data-fieldname='manual_pack']").css({"width": "560px", "height":"220px", "overflow": "scroll"})
+                                
                                 // set default selected qty as qty 
                                 $.each(r.message[0], function(i, val) {
-                                    $(di.body).find('input[name="select_qty"]').val(val.custom_qty)
+                                    // $(di.body).find('input[name="select_qty"]').val(val.custom_qty)
+                                    $(di.body).find('input[name="select_qty"]').val(1)
                                 })
 
                                 format_fields(di);
                                 search_boxes(di);
                                 select_items(di);
+                                select_all_items(di);
                                 change_qty(di);
                                 cur_frm.refresh_fields();   
                                 pack_items_manually(di,doc,r);
@@ -206,7 +209,21 @@ pack_items_manually = function(di,doc,r){
         var chk_items = $('.check_row').find("input[name=check]:checked").closest('tr')
         if (chk_items.length > 0){
             if($('.t_row').length == chk_items.length){
-                dn_status = "Manual Packing Slips Created"
+                qty_count = 0
+                $.each(chk_items, function(i, row) {
+                    qty = $(row).find('td:eq(3)').html()
+                    qty = qty.trim();
+                    sel_qty = $(row).find('#select_qty').val()
+                    if(qty == sel_qty){
+                        qty_count = qty_count + 1
+                    }
+                })
+                if (qty_count == $('.t_row').length){
+                    dn_status = "Manual Packing Slips Created"
+                }
+                else{
+                    dn_status = "Manual Partialy Packed"
+                }
                 create_packing_slip_for_manual(di, doc, dn_status, chk_items, r)
             }
             else{
@@ -226,7 +243,9 @@ create_packing_slip_for_manual = function(di, doc, dn_status, chk_items, r){
     $.each(chk_items, function(i, row) {
         var item_row = row
         pack_item = $(row).find('td:eq(1)').html()
+        pack_item = pack_item.trim();
         c_uom = $(row).find('td:eq(2)').html()
+        c_uom = c_uom.trim();
         sel_qty = $(row).find('#select_qty').val()
         i = {"item_code": pack_item}
         uom = {"uom": c_uom}
@@ -244,7 +263,7 @@ create_packing_slip_for_manual = function(di, doc, dn_status, chk_items, r){
     $.each(r.message[0], function(i, row) {
         $.each(pack_items, function(j, item_row) {
             if (row.item_code == item_row.item_code){
-                if(row.custom_qty != item_row.qty){
+                if(row.custom_qty < item_row.qty){
                     frappe.throw("Selected Qty should not be greater than Actual Qty of Item...")
                 }
             }
@@ -307,6 +326,21 @@ change_qty = function(di){
    
 }
 
+// select all items
+select_all_items = function(di){
+    $('#check1').on("click", function(){
+        if($('.select_all').find("input[name=check1]:checked").length != 0){
+            $('input:checkbox').prop('checked',true);
+        }
+        else{
+            $('input:checkbox').prop('checked',false);
+            $(di.body).find("[data-fieldname='tot_items']").val(0)
+            $(di.body).find("[data-fieldname='tot_wt']").val(0)
+        }
+        calculate_weigth(di)
+    })
+}
+
 // calculate total wt and items on selected items
 select_items = function(di){
     var items = []
@@ -362,11 +396,6 @@ format_fields = function(di){
     $(di.body).find("[data-fieldname='tot_items']").prop("readonly", true);
     $(di.body).find("[data-fieldname='tot_wt']").prop("readonly", true);
 }
-
-// frappe.ui.form.on("Delivery Note Item", "refresh", function(doc, cdt, cdn) {
-//     console.log("in refresh......")
-//     console.log(cur_frm.doc.pack_manualy)
-// });
 
 frappe.ui.form.on("Delivery Note", "onload_post_render", function(doc, cdt, cdn) {
     var get_other_services = $(":button[data-fieldname='fetch_ups_ground_rates']");

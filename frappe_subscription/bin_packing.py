@@ -45,6 +45,7 @@ def get_bin_packing_details(delivery_note):
                 if not bins:
                     frappe.throw("No Bins Founds, Please check the stock")
                 credentials = get_bin_packing_credentials()
+                frappe.errprint(bins)
                 request = get_bin_packing_request(bins,items_to_pack,credentials,params)
                 response = get_bin_packing_response(request)
                 return get_packing_slip_details(delivery_note, response.get("response"), items_with_unique_boxes)
