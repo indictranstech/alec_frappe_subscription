@@ -33,15 +33,22 @@ def pack_manualy(delivery_note):
 					frappe.db.sql("""update `tabPacking Slip` set docstatus = 2 where name = '%s' """%(chlid_row.packing_slip))
 					frappe.delete_doc("Packing Slip", chlid_row.packing_slip, force=True, ignore_permissions=True)
 				dn.remove(chlid_row)
-				dn.pack_manualy = 1
-				dn.save(ignore_permissions = True)
+
 		# update case no and tacking status of unique box packing slips
 		if dn.packing_slip_details:
 			for ps in dn.packing_slip_details:
 				count = count + 1
 				frappe.db.sql("""update `tabPacking Slip` set track_status = "Manual",from_case_no = '%s',  
 					to_case_no = '%s' where name = '%s' """%(count,count,ps.packing_slip))
-	return "Done...!!!"
+		dn.dn_status = "Draft"
+		dn.pack_manualy = 1
+		dn.save(ignore_permissions = True)
+	else:
+		dn.pack_manualy = 1
+		dn.dn_status = "Draft"
+		dn.save(ignore_permissions = True)
+		
+	return dn.dn_status
 
 # Get items to manual packing from DN
 @frappe.whitelist()
@@ -51,12 +58,17 @@ def manual_packing_creation(delivery_note):
 	remain_i = []
 	remain = []
 	# return items to manual packing
-	if dn.dn_status == "Packing Slips Created" and dn.pack_manualy == 1 :
+	if dn.dn_status == "Draft" and dn.pack_manualy == 1 and len(dn.packing_slip_details)==0 :
+		for i in dn.items:
+			items.append(i)
+
+	elif (dn.dn_status == "Packing Slips Created") and dn.pack_manualy == 1 :
 		for i in dn.items:
 			not_unq_item = frappe.db.get_value("Item", i.item_code, ["unique_box_for_packing"])
 			if not_unq_item == 0:
 				items.append(i)
-	elif dn.dn_status == "Manual Partialy Packed" and dn.pack_manualy == 1 :
+
+	elif (dn.dn_status == "Draft" or dn.dn_status == "Manual Partialy Packed") and dn.pack_manualy == 1 and len(dn.packing_slip_details) > 0 :
 		remain_items = frappe.db.sql("""select psi.item_code, sum(psi.qty) from `tabPacking Slip` ps, 
 					`tabPacking Slip Item` psi where ps.delivery_note = '%s' and psi.parent = ps.name 
 					group by psi.item_code """%(dn.name), as_list=1)
@@ -72,7 +84,6 @@ def manual_packing_creation(delivery_note):
 							items.append(i)
 					
 				if i.item_code not in remain_i:
-					# if remain_items[0]['item_code'] != i.item_code:
 					items.append(i)
 	
 	# return Box items
@@ -166,4 +177,4 @@ def create_packing_slip_for_manual(delivery_note, dn_status, pack_items, box_ite
 	else:
 		frappe.throw("Please get Packing Details first before create Manual Packing Slip")
 
-	return "Done...!!!"
+	return dn.dn_status

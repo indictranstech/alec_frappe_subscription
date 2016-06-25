@@ -36,7 +36,7 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
                     frappe.throw("Total number of packages allowed per shipment is 20 \
                                 please delete few items and try again")
                 else:
-                    if dn.dn_status == "Draft": dn.set("packing_slip_details",[])
+                    if dn.dn_status == "Draft" or dn.dn_status == "Manual Partialy Packed"  or dn.dn_status == "Manual Packing Slips Created" : dn.set("packing_slip_details",[])
                     # case_no = (len(dn.packing_slip_details) + 1) or 1
                     case_no = get_recommended_case_no(dn.name) or 1
                     for bin_info in bins_packed:
@@ -64,9 +64,11 @@ def get_packing_slip_details(delivery_note, bin_algo_response= None, unique_box_
                     dn.shipping_overhead_rate = frappe.db.get_value("Shipping Configuration",
                                                                     "Shipping Configuration",
                                                                     "shipping_overhead")
+                    dn.pack_manualy = 0
                     dn.save(ignore_permissions=True)
                     # return dn
                     return {
+                        "pack_manualy" : 0,
                         "status": dn.dn_status,
                         "not_packed_items":dn.not_packed_items
                     }
