@@ -9,7 +9,7 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
     // if(doc.name.indexOf("New Delivery Note") > -1)
     //     frappe.throw("Please first save the Delivery Note");
     else{
-        if(doc.dn_status == "Draft" || doc.dn_status == "Partialy Packed"){
+        if(doc.dn_status == "Draft" || doc.dn_status == "Partialy Packed" || doc.dn_status == "Manual Partialy Packed" || doc.dn_status == "Manual Packing Slips Created"){
             confirm_msg = "<center>Do you really want to create the Packing Slips<br>\
                             Once Packing Slip Created you can not make changes in Delivery Note</center>"
 
@@ -23,7 +23,17 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
                         delivery_note:doc,
                     },
                     callback: function(r){
-                        if(!r.exc) {
+                        // if(!r.exc) {
+                        if(r.message) {
+                            // doc.pack_manualy = 0
+                            // refresh_field('pack_manualy')
+                            // cur_frm.reload_doc();
+                            if(r.message.pack_manualy == 0){
+                                cur_frm.set_df_property("pack_manualy","read_only", 0)
+                                refresh_field('pack_manualy')
+                            }
+                            // doc.pack_manualy = 0
+                            // refresh_field('pack_manualy')
                             cur_frm.reload_doc();
                             if(r.message.status == "Packing Slips Created")
                                 frappe.msgprint("Packing Slip Created");
@@ -32,8 +42,9 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
                 });
             });
         }
-        else
+        else{
             frappe.throw("Packing Slips are already created. Please Reload the Document")
+        }   
     }
 }
 
@@ -103,9 +114,9 @@ cur_frm.cscript.pack_manualy = function(doc,cdt,cdn){
         frappe.throw("Please first save Delivery Note...");
     }
     else{
-        if(doc.status == "Draft" && (doc.dn_status == "Packing Slips Created" || doc.dn_status == "Manual Partialy Packed")){
+        if(doc.status == "Draft" && (doc.dn_status=="Draft" || doc.dn_status == "Packing Slips Created" || doc.dn_status == "Manual Partialy Packed")){
                 // if(doc.status == "Draft" && (doc.dn_status == "Draft" || doc.dn_status == "Partialy Packed")){
-            confirm_msg = "<center>Do you really want to remove created Packing Slip ?</center>"
+            confirm_msg = "<center>Do you really want to remove created Packing Slip, If exist ?</center>"
 
             frappe.confirm(confirm_msg,function(){
                 return frappe.call({
@@ -116,10 +127,13 @@ cur_frm.cscript.pack_manualy = function(doc,cdt,cdn){
                         delivery_note:doc,
                     },
                     callback: function(r){
-                        refresh_field('pack_manualy')
-                        refresh_field('packing_slip_details')
-                        cur_frm.set_df_property("pack_manualy","read_only", 1)
-                        window.location.reload()
+                        if(r.message){
+                            if (r.message.dn_status == "Draft" && doc.pack_manualy == 1){
+                                cur_frm.set_df_property("pack_manualy","read_only", 1)
+                                refresh_field('pack_manualy')
+                            }
+                            cur_frm.reload_doc();
+                        }
                     }
                 });
             }, function(){
@@ -127,9 +141,9 @@ cur_frm.cscript.pack_manualy = function(doc,cdt,cdn){
                 refresh_field('pack_manualy')
             });
         }
-        else{
-            frappe.throw("Please get Packing Details first before create Manual Packing")
-        }
+        // else{
+        //     frappe.throw("Please get Packing Details first before create Manual Packing")
+        // }
     }
 }
 
@@ -139,7 +153,7 @@ cur_frm.cscript.manual_packing = function(doc,cdt,cdn){
         frappe.throw("Please first save Delivery Note..");
     else{
         if (doc.pack_manualy == 1){
-            if(doc.status == "Draft" && (doc.dn_status == "Packing Slips Created" || doc.dn_status == "Manual Partialy Packed")){
+            if(doc.status == "Draft" && (doc.dn_status == "Draft" || doc.dn_status == "Packing Slips Created" || doc.dn_status == "Manual Partialy Packed")){
                 confirm_msg = "<center>Do you really want to create Manual Packing Slip ?</center>"
                 frappe.confirm(confirm_msg,function(){
                     return frappe.call({
@@ -174,7 +188,6 @@ cur_frm.cscript.manual_packing = function(doc,cdt,cdn){
                                 
                                 // set default selected qty as qty 
                                 $.each(r.message[0], function(i, val) {
-                                    // $(di.body).find('input[name="select_qty"]').val(val.custom_qty)
                                     $(di.body).find('input[name="select_qty"]').val(1)
                                 })
 
@@ -193,9 +206,9 @@ cur_frm.cscript.manual_packing = function(doc,cdt,cdn){
             else if(doc.status == "Draft" && doc.dn_status == "Manual Packing Slips Created"){
                 frappe.throw("Manual Packing Slips are already created. Please Reload the Document")
             }
-            else{
-                frappe.throw("Please get Packing Details first before create Manual Packing")
-            } 
+            // else{
+            //     frappe.throw("Please get Packing Details first before create Manual Packing")
+            // } 
         }
         else{
             frappe.throw("Please first remove created packing slip by confirming Pack manualy")
@@ -283,10 +296,12 @@ create_packing_slip_for_manual = function(di, doc, dn_status, chk_items, r){
             },
             callback: function(r) {
                 if(r.message){
-                    cur_frm.refresh_fields();
                     refresh_field('packing_slip_details')
                     di.hide()
-                    window.location.reload()
+                    cur_frm.reload_doc();
+                    if(r.message.dn_status == "Manual Partialy Packed" || r.message.dn_status == "Manual Packing Slips Created"){
+                        frappe.msgprint("Manual Packing Slip Created..");
+                    }
                 }
             }
         });
@@ -445,10 +460,12 @@ frappe.ui.form.on("Delivery Note Item", "item_code", function(doc, cdt, cdn) {
 });
 
 frappe.ui.form.on("Delivery Note", "onload", function(doc, cdt, cdn) {
-    if (cur_frm.doc.pack_manualy==1){
-        cur_frm.set_df_property("pack_manualy","read_only", 1)
+    if (cur_frm.doc.dn_status=="Draft" || cur_frm.doc.dn_status=="Manual Partialy Packed" || cur_frm.doc.dn_status=="Manual Packing Slips Created"){
+        if (cur_frm.doc.pack_manualy == 1){
+            cur_frm.set_df_property("pack_manualy","read_only", 1)
+        }
     }
-  var doc = locals[cdt][cdn];
+  var doc = locals[cdt][cdn];   
   var items = doc.items;
   if(items){
     items.forEach(function(entry) {

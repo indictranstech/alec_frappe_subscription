@@ -30,10 +30,24 @@ def get_bin_packing_details(delivery_note):
 #    try:
         # dn = frappe.get_doc("Delivery Note", delivery_note)
         dn = frappe.get_doc(json.loads(delivery_note))
+        delete_ps = []
 
-        if dn.dn_status not in ["Draft","Partialy Packed"]:
+        if dn.dn_status not in ["Draft","Partialy Packed", "Manual Partialy Packed", "Manual Packing Slips Created"]:
             frappe.throw("Packing Slips are already created. Please Reload the Document")
         else:
+            if dn.dn_status in ["Draft", "Manual Partialy Packed", "Manual Packing Slips Created"]:
+                if dn.packing_slip_details:
+                    for ps in dn.packing_slip_details:
+                        if ps.packing_slip :
+                            delete_ps.append(ps)
+                if delete_ps:
+                    for chlid_row in delete_ps:
+                        if chlid_row.packing_slip:
+                            frappe.errprint(chlid_row.packing_slip)
+                            frappe.db.sql("""update `tabPacking Slip` set docstatus = 2 where name = '%s' """%(chlid_row.packing_slip))
+                            frappe.delete_doc("Packing Slip", chlid_row.packing_slip, force=True, ignore_permissions=True)
+                        dn.remove(chlid_row)
+
             items_to_pack = get_items_to_pack(dn)
             to_pack = [item.get("id") for item in items_to_pack]
 
@@ -52,6 +66,11 @@ def get_bin_packing_details(delivery_note):
                 return get_packing_slip_details(delivery_note, None, items_with_unique_boxes)
             else:
                 frappe.throw("No items found for bin packing process")
+
+        dn.pack_manualy = 0
+        dn.save(ignore_permissions = True)
+        
+        return "Packing Slips"
  #   except Exception, e:
  #       frappe.throw(e)
 
@@ -59,7 +78,8 @@ def get_items_to_pack(dn):
     """Get the delivery note items, if dn_status is Draft else get the items from not_packed_items field"""
     items_to_pack = []
 
-    if dn.dn_status == "Draft":
+    # if dn.dn_status == "Draft":
+    if dn.dn_status in ["Draft", "Manual Partialy Packed", "Manual Packing Slips Created"]:
         items = dn.items
         for item in dn.items:
             to_dict = get_item_details(item.item_code, item.custom_qty, custom_uom=item.custom_uom, dn=dn.name)
@@ -145,7 +165,8 @@ def get_item_details(item_code, qty, custom_uom=None, dn=None):
 def get_unique_box_items_to_pack(dn, to_pack):
     """get items which uses the unique box for packing,  if dn_status is Draft else get the items from not_packed_items field"""
     items_with_unique_boxes = []
-    if dn.dn_status == "Draft":
+    # if dn.dn_status == "Draft":
+    if dn.dn_status in ["Draft", "Manual Partialy Packed", "Manual Packing Slips Created"]:
         for item in dn.items:
             if item.item_code not in to_pack:
                 # check if item requires unique Box
