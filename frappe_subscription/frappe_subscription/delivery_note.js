@@ -298,11 +298,10 @@ create_packing_slip_for_manual = function(di, doc, dn_status, chk_items, r){
                 if(r.message){
                     refresh_field('packing_slip_details')
                     di.hide()
-                    // cur_frm.reload_doc();
+                    cur_frm.reload_doc();
                     if(r.message.dn_status == "Manual Partialy Packed" || r.message.dn_status == "Manual Packing Slips Created"){
                         frappe.msgprint("Manual Packing Slip Created..");
                     }
-                    window.location.reload()
                 }
             }
         });
