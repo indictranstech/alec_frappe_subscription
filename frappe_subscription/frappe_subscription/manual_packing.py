@@ -14,6 +14,7 @@ def pack_manualy(delivery_note):
 	count = 0
 
 	if dn.packing_slip_details:
+		item_count = 0
 		for ps in dn.packing_slip_details:
 			if ps.packing_slip :
 				unique_ps = frappe.db.sql("""select psi.item_code from `tabPacking Slip` ps, 
@@ -23,6 +24,12 @@ def pack_manualy(delivery_note):
 					unique_item = frappe.db.get_value("Item", i['item_code'], ["unique_box_for_packing"])
 				if unique_item == 0:
 					delete_ps.append(ps)
+				else:
+					item_count = item_count + 1
+		if len(dn.packing_slip_details) == item_count :
+			dn_status = "Manual Packing Slips Created"
+		else : 
+			dn_status = "Draft"
 		
 		# delete created packing slips which have not unique box
 		if delete_ps:
@@ -39,15 +46,79 @@ def pack_manualy(delivery_note):
 			for ps in dn.packing_slip_details:
 				count = count + 1
 				frappe.db.sql("""update `tabPacking Slip` set track_status = "Manual",from_case_no = '%s',  
-					to_case_no = '%s' where name = '%s' """%(count,count,ps.packing_slip))
-		dn.dn_status = "Draft"
+					to_case_no = '%s' where name = '%s' """%(count,count,ps.packing_slip))	
+
+		dn.dn_status = dn_status
 		dn.pack_manualy = 1
 		dn.save(ignore_permissions = True)
 	else:
-		dn.pack_manualy = 1
-		dn.dn_status = "Draft"
-		dn.save(ignore_permissions = True)
-		
+		item_pack = []
+		for item in dn.items:
+			unique_item = frappe.db.get_values("Item", {"name":item.item_code}, ["unique_box_for_packing", "box"], as_dict=True)
+			if unique_item and unique_item[0]['unique_box_for_packing'] == 1:
+				item_pack.append(item.item_code)
+		manual_packing_for_unique_box(delivery_note, item_pack)
+
+		# dn.dn_status = "Manual Partialy Packed"
+		# dn.pack_manualy = 1
+		# dn.save(ignore_permissions = True)	
+	return dn.dn_status
+
+def manual_packing_for_unique_box(delivery_note, item_pack):
+	dn = frappe.get_doc(json.loads(delivery_note))
+	for i in item_pack:
+		item_dtls = frappe.db.sql("""select dni.custom_qty, dni.custom_uom from `tabDelivery Note` dn, 
+			`tabDelivery Note Item` dni where dn.name = dni.parent and dn.name = '%s' and 
+			dni.item_code = '%s' """%(dn.name, i),as_list=1)
+		box = frappe.db.get_value("Item", i, ["box"])
+		if box:
+			box_wt = frappe.db.sql("""select cuom.weight from `tabCustom UOM Conversion Details` cuom, 
+					`tabItem` i where i.name = cuom.parent and 	cuom.default_shipping_uom = 1 and 
+					i.name = '%s' """%(box),as_list=1)
+			if not box_wt:
+				box_wt = 0
+			for qty in range(item_dtls[0][0]):
+				case_no = frappe.db.sql("""select MAX(from_case_no), MAX(to_case_no) FROM 
+					`tabPacking Slip` where delivery_note = '%s' AND docstatus=1"""%(dn.name),as_list=1)
+				ps = frappe.new_doc("Packing Slip")
+				ps.naming_series = "PS-"
+				ps.delivery_note = dn.name
+				ps.track_status = "Manual"
+				if case_no:
+					ps.from_case_no = cint(case_no[0][0]) + 1
+					ps.to_case_no = cint(case_no[0][1]) + 1
+				else:
+					ps.from_case_no = 1
+					ps.to_case_no =  1
+				ps.tracking_id = "NA"
+				ps.package_used = box
+				ps.tracking_status = "Not Packed"
+				ps.net_weight_pkg = box_wt
+				ps.gross_weight_pkg = box_wt
+				ps.set("items", [])
+				
+				ps_item = ps.append("items",{})
+				ps_item.item_code = i
+				ps_item.item_name = frappe.db.get_value("Item",i,"item_name")
+				ps_item.description = frappe.db.get_value("Item",i,"description")
+				ps_item.qty = 1
+				ps_item.net_weight = box_wt
+				ps_item.stock_uom = item_dtls[0][1]
+				
+				ps.flags.ignore_permissions = 1
+				ps.docstatus = 1
+				ps.save()
+			
+				psd = dn.append('packing_slip_details', {})
+				psd.item_code = box
+				psd.item_name = frappe.db.get_value("Item",box,"item_name")
+				psd.packing_slip = ps.name
+				psd.tracking_id = "NA"
+				psd.tracking_status = "Not Packed"
+
+	dn.dn_status = "Manual Partialy Packed"
+	dn.pack_manualy = 1
+	dn.save(ignore_permissions = True)
 	return dn.dn_status
 
 # Get items to manual packing from DN
