@@ -25,15 +25,10 @@ cur_frm.cscript.get_packing_details = function(doc,cdt,cdn){
                     callback: function(r){
                         // if(!r.exc) {
                         if(r.message) {
-                            // doc.pack_manualy = 0
-                            // refresh_field('pack_manualy')
-                            // cur_frm.reload_doc();
                             if(r.message.pack_manualy == 0){
                                 cur_frm.set_df_property("pack_manualy","read_only", 0)
                                 refresh_field('pack_manualy')
                             }
-                            // doc.pack_manualy = 0
-                            // refresh_field('pack_manualy')
                             cur_frm.reload_doc();
                             if(r.message.status == "Packing Slips Created")
                                 frappe.msgprint("Packing Slip Created");
@@ -116,7 +111,8 @@ cur_frm.cscript.pack_manualy = function(doc,cdt,cdn){
     else{
         if(doc.status == "Draft" && (doc.dn_status=="Draft" || doc.dn_status == "Packing Slips Created" || doc.dn_status == "Manual Partialy Packed")){
                 // if(doc.status == "Draft" && (doc.dn_status == "Draft" || doc.dn_status == "Partialy Packed")){
-            confirm_msg = "<center>Do you really want to remove created Packing Slip, If exist ?</center>"
+            confirm_msg = "<center>Do you really want to remove created Packing Slip, If exist ? </br>\
+                            And create packing slips for unique box items ?</center>"
 
             frappe.confirm(confirm_msg,function(){
                 return frappe.call({
@@ -180,9 +176,11 @@ cur_frm.cscript.manual_packing = function(doc,cdt,cdn){
                                         {"fieldtype": "Button", "label": __("Pack Items"), "fieldname": "pack_items"},
                                     ]
                                 })
+                                
                                 $(di.body).find("[data-fieldname='manual_pack']").html(frappe.render_template("manual_packing", {"data":r.message[0]}))
+                                
                                 di.show();
-
+                                
                                 $(di.body).find("[data-fieldname='box']").autocomplete({source: r.message[1]})
                                 $(di.body).find("[data-fieldname='manual_pack']").css({"width": "560px", "height":"220px", "overflow": "scroll"})
                                 
@@ -198,6 +196,11 @@ cur_frm.cscript.manual_packing = function(doc,cdt,cdn){
                                 change_qty(di);
                                 cur_frm.refresh_fields();   
                                 pack_items_manually(di,doc,r);
+                                // $('.hidden-xs').on("click", function(){
+                                //     if($('.check_row').find("input[name=check]:checked").length != 0){
+                                //         $('.check_row input:checkbox').prop('checked',false);
+                                //     }
+                                // })
                             }
                         },
                     });
@@ -219,9 +222,9 @@ cur_frm.cscript.manual_packing = function(doc,cdt,cdn){
 // Pack Items Manually
 pack_items_manually = function(di,doc,r){
     $(di.body).find("button[data-fieldname='pack_items']").on("click", function(){
-        var chk_items = $('.check_row').find("input[name=check]:checked").closest('tr')
+        var chk_items = $(cur_dialog.body).find("input[name=check]:checked").closest('tr')
         if (chk_items.length > 0){
-            if($('.t_row').length == chk_items.length){
+            if($(cur_dialog.body).find('.t_row').length == chk_items.length){
                 qty_count = 0
                 $.each(chk_items, function(i, row) {
                     qty = $(row).find('td:eq(3)').html()
@@ -231,7 +234,7 @@ pack_items_manually = function(di,doc,r){
                         qty_count = qty_count + 1
                     }
                 })
-                if (qty_count == $('.t_row').length){
+                if (qty_count == $(cur_dialog.body).find('.t_row').length){
                     dn_status = "Manual Packing Slips Created"
                 }
                 else{
@@ -252,6 +255,7 @@ pack_items_manually = function(di,doc,r){
 
 // create packing slip for manual packing
 create_packing_slip_for_manual = function(di, doc, dn_status, chk_items, r){
+    var me = this;
     pack_items = []
     $.each(chk_items, function(i, row) {
         var item_row = row
@@ -268,9 +272,9 @@ create_packing_slip_for_manual = function(di, doc, dn_status, chk_items, r){
         pack_items.push(i);
     })
     // get current values on dialog box
-    box_item = $(di.body).find("input[data-fieldname='box']").val()
-    box_wt = $(di.body).find("[data-fieldname='weight']").val()
-    total_wt = $(di.body).find("[data-fieldname='tot_wt']").val()
+    box_item = $(cur_dialog.body).find("input[data-fieldname='box']").val()
+    box_wt = $(cur_dialog.body).find("input[data-fieldname='weight']").val()
+    total_wt = $(cur_dialog.body).find("input[data-fieldname='tot_wt']").val()
     
     // Validation on selected Qty
     $.each(r.message[0], function(i, row) {
@@ -282,6 +286,7 @@ create_packing_slip_for_manual = function(di, doc, dn_status, chk_items, r){
             }
         })
     })
+    
     if(Math.floor(box_wt) >= Math.floor(total_wt)){
         frappe.call({
             freeze: true,
@@ -297,6 +302,9 @@ create_packing_slip_for_manual = function(di, doc, dn_status, chk_items, r){
             callback: function(r) {
                 if(r.message){
                     refresh_field('packing_slip_details')
+                    // if($('.check_row').find("input[name=check]:checked").length != 0){
+                    //     $('.check_row input:checkbox').prop('checked',false);
+                    // }
                     di.hide()
                     cur_frm.reload_doc();
                     if(r.message.dn_status == "Manual Partialy Packed" || r.message.dn_status == "Manual Packing Slips Created"){
@@ -343,12 +351,14 @@ change_qty = function(di){
 
 // select all items
 select_all_items = function(di){
-    $('#check1').on("click", function(){
-        if($('.select_all').find("input[name=check1]:checked").length != 0){
-            $('input:checkbox').prop('checked',true);
+    $('.check1').on("click", function(){
+        // if($('.select_all').find("input[name=check1]:checked").length != 0){
+        if($(cur_dialog.body).find("input[name=check1]:checked").length != 0){
+            $('.check_row input:checkbox').prop('checked',true);
         }
         else{
-            $('input:checkbox').prop('checked',false);
+            $('.check_row input:checkbox').prop('checked',false);
+            $('.select_all input:checkbox').prop('checked',false);
             $(di.body).find("[data-fieldname='tot_items']").val(0)
             $(di.body).find("[data-fieldname='tot_wt']").val(0)
         }
@@ -361,7 +371,8 @@ select_items = function(di){
     var items = []
     $('.check_row').on("click", function(){
         calculate_weigth(di)
-        if($('.check_row').find("input[name=check]:checked").length == 0){
+        // if($('.check_row').find("input[name=check]:checked").length == 0){
+        if($(cur_dialog.body).find("input[name=check]:checked").length == 0){
             $(di.body).find("[data-fieldname='tot_items']").val(0)
             $(di.body).find("[data-fieldname='tot_wt']").val(0)
         }
@@ -372,7 +383,8 @@ select_items = function(di){
 calculate_weigth = function(di){
     var tot_wt = 0
     var tot_qty = 0
-    var item = $('.check_row').find("input[name=check]:checked").closest('tr')
+    // var item = $('.check_row').find("input[name=check]:checked").closest('tr')
+    var item = $(cur_dialog.body).find("input[name=check]:checked").closest('tr')
     $.each(item, function(i, row) {
         i_code = $(row).find('td:eq(1)').html()
         sel_qty = $(row).find('#select_qty').val()
@@ -390,8 +402,8 @@ calculate_weigth = function(di){
                         qty = r.message[1] * 1
                         tot_qty = tot_qty + qty
                     }
-                    $(di.body).find("[data-fieldname='tot_items']").val(tot_qty)
-                    $(di.body).find("[data-fieldname='tot_wt']").val(tot_wt)
+                    $(di.body).find("input[data-fieldname='tot_items']").val(tot_qty)
+                    $(di.body).find("input[data-fieldname='tot_wt']").val(tot_wt)
                 }
             });
         }
